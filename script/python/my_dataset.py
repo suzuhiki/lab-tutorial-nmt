@@ -36,7 +36,7 @@ class MyDataset(Dataset):
   
   def get_vocab_size(self):
     dict = self.id_store.get_dict()
-    return len(dict[0][0]), len(dict[1][0])
+    return len(dict[1][0]), len(dict[0][0])
   
   def __add_bos_eos(self, ids):
     tmp_list = copy(ids)

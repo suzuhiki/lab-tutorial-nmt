@@ -20,8 +20,10 @@ class IdStore:
       self.id_attacher_en.save_dict("en")
       print("id -> word")
       print(self.id_attacher_en.id2w_dict)
+      print(len(self.id_attacher_en.id2w_dict))
       print("word -> id")
       print(self.id_attacher_en.w2id_dict)
+      print(len(self.id_attacher_en.w2id_dict))
 
     # convert EN srcs
     for name in self.SRC_EN_NAMES:
@@ -45,8 +47,10 @@ class IdStore:
       self.id_attacher_ja.save_dict("ja")
       print("id -> word")
       print(self.id_attacher_ja.id2w_dict)
+      print(len(self.id_attacher_ja.id2w_dict))
       print("word -> id")
       print(self.id_attacher_ja.w2id_dict)
+      print(len(self.id_attacher_ja.w2id_dict))
 
     # convert JA srcs
     for name in self.SRC_JA_NAMES:
