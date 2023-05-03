@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch
 
 class LSTM_Decoder(nn.Module):
-  def __init__(self, vocab_size, embed_dim, hidden_size, padding_idx) -> None:
+  def __init__(self, vocab_size, embed_dim, hidden_size, padding_idx, device) -> None:
     super(LSTM_Decoder, self).__init__()
     
     self.vocab_size = vocab_size
