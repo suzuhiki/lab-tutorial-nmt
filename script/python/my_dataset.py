@@ -1,5 +1,6 @@
 from id_store import IdStore
 from torch.utils.data import Dataset
+from copy import copy
 
 class MyDataset(Dataset):
   def __init__(self, id_store: IdStore, mode: str) -> None:
@@ -38,7 +39,7 @@ class MyDataset(Dataset):
     return len(dict[0][0]), len(dict[1][0])
   
   def __add_bos_eos(self, ids):
-    tmp_list = ids
+    tmp_list = copy(ids)
     tmp_list.insert(0, self.special_token["<BOS>"])
     tmp_list.append(self.special_token["<EOS>"])
-    return ids
+    return tmp_list
