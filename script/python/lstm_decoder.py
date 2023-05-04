@@ -5,6 +5,7 @@ class LSTM_Decoder(nn.Module):
   def __init__(self, vocab_size, embed_dim, hidden_size, padding_idx, device) -> None:
     super(LSTM_Decoder, self).__init__()
     
+    self.device = device
     self.special_token = {'<PAD>': 0, '<BOS>': 1, '<EOS>': 2, '<UNK>': 3}
     self.vocab_size = vocab_size
     self.padding_idx = padding_idx
@@ -27,18 +28,29 @@ class LSTM_Decoder(nn.Module):
       return torch.permute(output, (1, 0, 2)) 
     
     else:
-      output = torch.zeros(generate_len, self.vocab_size)
-      output_tmp = torch.tensor([self.special_token["<BOS>"]])
-      output_tmp = self.embedding(output_tmp)
+      # output = torch.zeros(generate_len, self.vocab_size, device=self.device)
+      output = []
       
-      embed_eos = self.embedding(self.special_token["<EOS>"])
-      
-      for i in range(generate_len):
-        hidden, cell = self.lstm_cell(output_tmp.unsqueeze(0), (hidden, cell))
-        output_tmp = self.fc(hidden)
+      for i, (h, c) in enumerate(zip(hidden, cell)):
+        sentence_out = []
         
-        output[i] = self.fc(output_tmp)
+        h_x = h.unsqueeze(dim=0)
+        c_x = c.unsqueeze(dim=0)
         
-        if output_tmp == embed_eos:
-          break
+        input_tmp = torch.tensor([self.special_token["<BOS>"]], device=self.device)
+        input_tmp = self.embedding(input_tmp)
+        
+        for j in range(generate_len):
+          h_x ,c_x =self.lstm_cell(input_tmp, (h_x, c_x))
+          output_tmp = self.fc(h_x)
+          output_tmp = torch.argmax(output_tmp)
+
+          sentence_out.append(output_tmp.to("cpu").detach().numpy().copy().item())
+          
+          if output_tmp == self.special_token["<EOS>"]:
+            break
+          
+          input_tmp = self.embedding(output_tmp).unsqueeze(dim=0)
+        output.append(sentence_out)
+
       return output
