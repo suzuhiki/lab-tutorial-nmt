@@ -14,7 +14,6 @@ class LSTM_Encoder(nn.Module):
   def forward(self, inputs): #inputs : (batch, timestep)
     s_mask = torch.where(inputs == self.padding_idx, 1, 0)
     s_mask = torch.permute(s_mask, (1, 0))
-    print(s_mask.size())
     
     h_c_mask = torch.zeros(inputs.size(1), inputs.size(0), self.hidden_size, device=self.device)
     
@@ -22,23 +21,15 @@ class LSTM_Encoder(nn.Module):
       for j, batch in enumerate(timestep):
         if batch == 1:
           h_c_mask[i][j] = torch.zeros(self.hidden_size, device=self.device)
-    print(h_c_mask.size())
     
     embedded_vector = self.embedding(inputs) # (batch, timestep, vocab)
-    print(embedded_vector.size())
 
     hidden = torch.zeros(inputs.size(0),self.hidden_size, device=self.device)
     cell = torch.zeros(inputs.size(0), self.hidden_size, device=self.device)
-    print(hidden.size())
-    print(cell.size())
 
     permuted_vec = torch.permute(embedded_vector, (1, 0, 2))
-    print(permuted_vec.size())
     
     for i in range(permuted_vec.size(0)):
-      print(permuted_vec[i].size())
-      print(hidden.size())
-      print(cell.size())
       tmp_hidden, tmp_cell = self.lstm_cell(permuted_vec[i], (hidden, cell))
       hidden = torch.where(h_c_mask[i] == 0, tmp_hidden, hidden)
       cell = torch.where(h_c_mask[i] == 0, tmp_cell, cell)

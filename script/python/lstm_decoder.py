@@ -12,21 +12,20 @@ class LSTM_Decoder(nn.Module):
     self.lstm_cell = nn.LSTMCell(embed_dim, hidden_size) # LSTMのセル単位で処理を行う
     self.fc = nn.Linear(hidden_size, vocab_size)
   
-  def forward(self, inputs, encoder_state, generate_len): # inputs:入力文(1文) 並列化は考慮しない encoder_state:(hidden,cell)
-    s_mask = torch.where(inputs == self.padding_idx, 1, 0)
+  def forward(self, inputs, encoder_state, generate_len):
     hidden, cell = encoder_state
     
     if self.training == True:
-      output = torch.zeros(inputs.size(0), self.vocab_size)
+      output = torch.zeros(inputs.size(1) ,inputs.size(0), self.vocab_size)
       embedded_vector = self.embedding(inputs)
+      permuted_vec = torch.permute(embedded_vector, (1, 0, 2))
       
-      for i, (token, w_mask) in enumerate(zip(embedded_vector, s_mask)): # token:1単語の埋め込み行列
-        hidden_tmp, cell_tmp = self.lstm_cell(token.unsqueeze(0), (hidden, cell))
-        
-        output[i] = self.fc(hidden_tmp)  
-        
-        if w_mask == 0:
-          hidden, cell = hidden_tmp, cell_tmp
+      for i in range(permuted_vec.size(0)):
+        hidden, cell = self.lstm_cell(permuted_vec[i], (hidden, cell))
+        output[i] = self.fc(hidden)
+      
+      return torch.permute(output, (1, 0, 2)) 
+    
     else:
       output = torch.zeros(generate_len, self.vocab_size)
       output_tmp = torch.tensor([self.special_token["<BOS>"]])
@@ -42,5 +41,4 @@ class LSTM_Decoder(nn.Module):
         
         if output_tmp == embed_eos:
           break
-    
-    return output
+      return output
