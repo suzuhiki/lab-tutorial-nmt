@@ -13,12 +13,12 @@ class Seq2Seq(nn.Module):
 
     def forward(self, src, dst):
         output = torch.zeros(dst.size(0), dst.size(1), self.vocab_size_dst)
+        generate_size = src.size(1) + 50
         
-        for i, (s, d) in enumerate(zip(src, dst)):
-            hidden_vec = self.encoder(s)
-            vocab_vec = self.decoder(d, hidden_vec)
-            
-            output[i] = vocab_vec
+        hidden_vec = self.encoder(src)
+        vocab_vec = self.decoder(dst, hidden_vec, generate_size)
+        
+        output = vocab_vec
         return output
     
     def train(self, mode:bool = True):
