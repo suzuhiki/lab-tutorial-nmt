@@ -1,21 +1,19 @@
-from id_store import IdStore
+from word_dictionary import WordDictionary
 from torch.utils.data import Dataset
 from copy import copy
 
 class MyDataset(Dataset):
-  def __init__(self, id_store: IdStore, mode: str) -> None:
+  def __init__(self, word_dict: WordDictionary, mode: str) -> None:
     super().__init__()
-    self.src_lang = "ja"
-    self.dst_lang = "en"
     self.mode = mode
     
-    self.id_store = id_store
-    self.src_idlines_train = id_store.get_id("train", self.src_lang)
-    self.src_idlines_dev = id_store.get_id("dev", self.src_lang)
-    self.src_idlines_test = id_store.get_id("test", self.src_lang)
-    self.dst_idlines_train = id_store.get_id("train", self.dst_lang)
-    self.dst_idlines_dev = id_store.get_id("dev", self.dst_lang)
-    self.dst_idlines_test = id_store.get_id("test", self.dst_lang)
+    self.word_dict = word_dict
+    self.src_idlines_train = word_dict.get_id("train-1.short", "ja")
+    self.src_idlines_dev = word_dict.get_id("dev", "ja")
+    self.src_idlines_test = word_dict.get_id("test", "ja")
+    self.dst_idlines_train = word_dict.get_id("train-1.short", "en")
+    self.dst_idlines_dev = word_dict.get_id("dev", "en")
+    self.dst_idlines_test = word_dict.get_id("test", "en")
     self.special_token = {"<PAD>":0, "<BOS>":1, "<EOS>":2, "<UNK>":3}
   
   def __len__(self):
@@ -35,8 +33,7 @@ class MyDataset(Dataset):
       return self.__add_bos_eos(self.src_idlines_test[idx]), self.__add_bos_eos(self.dst_idlines_test[idx])
   
   def get_vocab_size(self):
-    dict = self.id_store.get_dict()
-    return len(dict[1][0]), len(dict[0][0])
+    return len(self.word_dict.get_dict("ja", "w2id")), len(self.word_dict.get_dict("en", "w2id"))
   
   def __add_bos_eos(self, ids):
     tmp_list = copy(ids)
