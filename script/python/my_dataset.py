@@ -14,7 +14,7 @@ class MyDataset(Dataset):
     self.dst_idlines_train = word_dict.get_id("train-1.short", "en")
     self.dst_idlines_dev = word_dict.get_id("dev", "en")
     self.dst_idlines_test = word_dict.get_id("test", "en")
-    self.special_token = {"<PAD>":0, "<BOS>":1, "<EOS>":2, "<UNK>":3}
+    self.special_token = {"<pad>":0, "<bos>":1, "<eos>":2, "<unk>":3}
   
   def __len__(self):
     if self.mode == "train":
@@ -37,6 +37,6 @@ class MyDataset(Dataset):
   
   def __add_bos_eos(self, ids):
     tmp_list = copy(ids)
-    tmp_list.insert(0, self.special_token["<BOS>"])
-    tmp_list.append(self.special_token["<EOS>"])
+    tmp_list.insert(0, self.special_token["<bos>"])
+    tmp_list.append(self.special_token["<eos>"])
     return tmp_list
