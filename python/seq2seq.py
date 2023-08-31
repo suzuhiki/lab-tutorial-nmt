@@ -13,6 +13,7 @@ class Seq2Seq(nn.Module):
 
     def forward(self, src, dst):
         output = torch.zeros(dst.size(0), dst.size(1), self.vocab_size_dst)
+        # 出力系列長の最大値
         generate_size = src.size(1) + 50
         
         hidden_vec = self.encoder(src)

@@ -1,18 +1,18 @@
-from word_dictionary import WordDictionary
+from .word_dictionary import WordDictionary
 from torch.utils.data import Dataset
 from copy import copy
 
 class MyDataset(Dataset):
-    def __init__(self, src_path: str, tgt_path: str) -> None:
+    def __init__(self, src_path: str, tgt_path: str, special_token) -> None:
         super().__init__()
         
         self.src_path = src_path
         self.tgt_path = tgt_path
+        self.special_token = special_token
 
         #辞書を作成
-        self.src_dict = WordDictionary()
-        self.tgt_dict = WordDictionary()
-        self.special_token = self.src_dict.special_token
+        self.src_dict = WordDictionary(special_token)
+        self.tgt_dict = WordDictionary(special_token)
 
         self.src_w2id, self.src_id2w = self.src_dict.create_get_dict(src_path)
         self.tgt_w2id, self.tgt_id2w = self.src_dict.create_get_dict(tgt_path)
@@ -31,6 +31,9 @@ class MyDataset(Dataset):
     # 語彙サイズ (src,tgt)
     def get_vocab_size(self):
         return len(self.src_w2id), len(self.tgt_w2id)
+    
+    def get_tgt_id2w(self):
+        return self.tgt_id2w
     
     def wordlines_2_idlines(self, path: str, w2id: dict) -> list:
         result = []

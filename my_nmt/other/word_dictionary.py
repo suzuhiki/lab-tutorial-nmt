@@ -1,8 +1,8 @@
 from ..util.util import get_swap_dict
 
 class WordDictionary:
-    def __init__(self) -> None:
-        self.special_token = {"<pad>":0, "<bos>":1, "<eos>":2, "<unk>":3}
+    def __init__(self, special_token) -> None:
+        self.special_token = special_token
     
     # 辞書の初期化と構築
     def create_dict(self, src_path: str):

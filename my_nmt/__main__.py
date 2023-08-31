@@ -1,7 +1,113 @@
-from .other.word_dictionary import WordDictionary
-from .util.util import get_swap_dict
+import argparse
+import json
+import os
+import torch
+import random
+import sys
+import datetime
+
+from torch.utils.data import DataLoader
+from torch.nn.utils.rnn import pad_sequence
+
+from .other.my_dataset import MyDataset
+from .model.lstm import LSTM
+from .mode.lstm_train import lstm_train
+
+
+def main():    
+    # コマンドライン引数読み取り
+    parser = argparse.ArgumentParser()
+    
+    parser.add_argument("--src_train_path", type=str, default=None)
+    parser.add_argument("--src_dev_path", type=str, default=None)
+    parser.add_argument("--src_test_path", type=str, default=None)
+    
+    parser.add_argument("--tgt_train_path", type=str, default=None)
+    parser.add_argument("--tgt_dev_path", type=str, default=None)
+    parser.add_argument("--tgt_test_path", type=str, default=None)
+    
+    parser.add_argument("--model", type=str, default="LSTM")
+    parser.add_argument("--batch_size", type=int, default=50)
+    parser.add_argument("--epoch_num", type=int, default=20)
+    parser.add_argument("--hidden_size", type=int, default=256)
+    parser.add_argument("--learning_rate", type=float, default=0.01)
+    parser.add_argument("--seed", type=int, default=50)
+    parser.add_argument("--embed_size", type=int, default=256)
+    
+    parser.add_argument("--save_dir", type=str, default="./output")
+    parser.add_argument("--mode", type=str, default="train")
+    parser.add_argument("--model_saved_dir", type=str, default=None)
+    
+    args = parser.parse_args()
+    
+    #初期設定
+    random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print("device: {}".format(device))
+    
+    special_token = {'<pad>': 0, '<bos>': 1, '<eos>': 2, '<unk>': 3}
+    batch_size = args.batch_size
+    padding_id = special_token["<pad>"]
+    
+    model_names = ["LSTM"]
+    mode_names = ["train", "test"]
+    
+    # コマンドライン引数確認
+    if args.model not in model_names:
+        print("(--model) 実装されているモデル名を指定してください")
+        for m in model_names:
+            print(m)
+        sys.exit()
+    
+    if args.mode not in mode_names:
+        print("(--mode) trainかtestを選択してください")
+        sys.exit()
+        
+    # 出力先のフォルダを作成
+    datatime_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    save_dir = "{}/{}_{}".format(args.save_dir, args.model, datatime_str)
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    
+    
+    
+    ### 学習処理
+    if args.mode == "train":   
+        # config出力
+        with open("{}/config.json".format(save_dir), mode="w") as f:
+            json.dump(vars(args), f, separators=(",", ":"), indent=4)
+            
+        train_dataset = MyDataset(args.src_train_path, args.tgt_train_path, special_token)
+        dev_dataset = MyDataset(args.src_dev_path, args.tgt_dev_path, special_token)
+        
+        train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_func)
+        dev_dataloader = DataLoader(dev_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_func)
+        
+        src_vocab_size, tgt_vocab_size = train_dataset.get_vocab_size()
+        model = LSTM(args.hidden_size, src_vocab_size, tgt_vocab_size, padding_id, args.embed_size, device).to(device)
+        print(model)
+        
+        optimizer = torch.optim.Adam(model.parameters(), args.learning_rate)
+        criterion = torch.nn.CrossEntropyLoss(ignore_index=padding_id)
+        
+        tgt_id2w = train_dataset.get_tgt_id2w
+        lstm_train(model, train_dataloader, dev_dataloader, optimizer, criterion, args.epoch_num, device, batch_size, tgt_id2w, model_save_span=5, model_save_path=save_dir)
+
+
+# データローダーに使う関数
+def collate_func(batch):
+    src_t = []
+    tgt_t = []
+    
+    for src, tgt in batch:
+        src_t.append(torch.tensor(src))
+        tgt_t.append(torch.tensor(tgt))
+    
+    return pad_sequence(src_t, batch_first=True), pad_sequence(tgt_t, batch_first=True)
+
 
 if __name__ == "__main__":
-    src = "/home/morioka/workspace/git_projects/lab-tutorial-nmt/resource/tokenized/train-1.short.en"
-    word_dict = WordDictionary()
-    print(word_dict.create_get_dict(src)[1])
+    main()
