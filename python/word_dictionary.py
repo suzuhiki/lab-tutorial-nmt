@@ -9,6 +9,9 @@ class WordDictionary:
     
     def create_dict(self):
         # JA
+        self.w2id_dict_ja = {"<pad>":0, "<bos>":1, "<eos>":2, "<unk>":3}
+        self.id2w_dict_ja = {0:"<pad>", 1:"<bos>", 2:"<eos>", 3:"<unk>"}
+        
         with open(self.SRC_PATH + "train-1.short.ja", "r") as f:
             tmp_doc = f.read().splitlines()
             for line in tmp_doc:
@@ -21,6 +24,9 @@ class WordDictionary:
                         self.id2w_dict_ja[id] = l_word
         
         # EN
+        self.w2id_dict_en = {"<pad>":0, "<box>":1, "<eos>":2, "<unk>":3}
+        self.id2w_dict_en = {0:"<pad>", 1:"<bos>", 2:"<eos>", 3:"<unk>"}
+        
         with open(self.SRC_PATH + "train-1.short.en", "r") as f:
             tmp_doc = f.read().splitlines()
             for line in tmp_doc:
