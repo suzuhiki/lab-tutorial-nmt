@@ -8,18 +8,18 @@ class MyDataset(Dataset):
         
         self.src_path = src_path
         self.tgt_path = tgt_path
-        self.special_token = special_token
 
         #辞書を作成
         self.src_dict = WordDictionary(special_token)
         self.tgt_dict = WordDictionary(special_token)
 
         self.src_w2id, self.src_id2w = self.src_dict.create_get_dict(src_path)
-        self.tgt_w2id, self.tgt_id2w = self.src_dict.create_get_dict(tgt_path)
+        self.tgt_w2id, self.tgt_id2w = self.tgt_dict.create_get_dict(tgt_path)
         
         self.src_idlines = self.wordlines_2_idlines(src_path, self.src_w2id)
         self.tgt_idlines = self.wordlines_2_idlines(tgt_path, self.tgt_w2id)
         
+        self.special_token = special_token.copy()
     
     def __len__(self):
         return len(self.src_idlines)
@@ -34,6 +34,9 @@ class MyDataset(Dataset):
     
     def get_tgt_id2w(self):
         return self.tgt_id2w
+    
+    def get_src_id2w(self):
+        return self.src_w2id
     
     def wordlines_2_idlines(self, path: str, w2id: dict) -> list:
         result = []

@@ -8,10 +8,12 @@ import datetime
 
 from torch.utils.data import DataLoader
 from torch.nn.utils.rnn import pad_sequence
+from torch.utils.tensorboard import SummaryWriter
 
 from .other.my_dataset import MyDataset
 from .model.lstm import LSTM
 from .mode.lstm_train import lstm_train
+from .mode.lstm_test import lstm_test
 
 
 def main():    
@@ -27,16 +29,16 @@ def main():
     parser.add_argument("--tgt_test_path", type=str, default=None)
     
     parser.add_argument("--model", type=str, default="LSTM")
-    parser.add_argument("--batch_size", type=int, default=50)
-    parser.add_argument("--epoch_num", type=int, default=20)
+    parser.add_argument("--batch_size", type=int, default=64)
+    parser.add_argument("--epoch_num", type=int, default=24)
     parser.add_argument("--hidden_size", type=int, default=256)
     parser.add_argument("--learning_rate", type=float, default=0.01)
-    parser.add_argument("--seed", type=int, default=50)
+    parser.add_argument("--seed", type=int, default=46)
     parser.add_argument("--embed_size", type=int, default=256)
     
     parser.add_argument("--save_dir", type=str, default="./output")
     parser.add_argument("--mode", type=str, default="train")
-    parser.add_argument("--model_saved_dir", type=str, default=None)
+    parser.add_argument("--model_file_path", type=str, default=None)
     
     args = parser.parse_args()
     
@@ -72,10 +74,11 @@ def main():
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     
-    
+    # ログファイル設定
+    writer = SummaryWriter(log_dir=save_dir)
     
     ### 学習処理
-    if args.mode == "train":   
+    if args.mode == "train":
         # config出力
         with open("{}/config.json".format(save_dir), mode="w") as f:
             json.dump(vars(args), f, separators=(",", ":"), indent=4)
@@ -87,14 +90,28 @@ def main():
         dev_dataloader = DataLoader(dev_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_func)
         
         src_vocab_size, tgt_vocab_size = train_dataset.get_vocab_size()
+        print("語彙サイズ：src {}, tgt {}".format(src_vocab_size, tgt_vocab_size))
         model = LSTM(args.hidden_size, src_vocab_size, tgt_vocab_size, padding_id, args.embed_size, device).to(device)
         print(model)
         
         optimizer = torch.optim.Adam(model.parameters(), args.learning_rate)
         criterion = torch.nn.CrossEntropyLoss(ignore_index=padding_id)
         
-        tgt_id2w = train_dataset.get_tgt_id2w
-        lstm_train(model, train_dataloader, dev_dataloader, optimizer, criterion, args.epoch_num, device, batch_size, tgt_id2w, model_save_span=5, model_save_path=save_dir)
+        tgt_id2w = train_dataset.get_tgt_id2w()
+        lstm_train(model, train_dataloader, dev_dataloader, optimizer, criterion, args.epoch_num, device, batch_size, 
+                   tgt_id2w, model_save_span=5, model_save_path=save_dir, writer=writer)
+    elif args.mode == "test":
+        test_detaset = MyDataset(args.src_test_path, args.tgt_test_path, special_token)
+        test_dataloader = DataLoader(test_detaset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_func)
+        
+        model = LSTM(args.hidden_size, src_vocab_size, tgt_vocab_size, padding_id, args.embed_size, device).to(device)
+        print(model)
+        
+        model.load_state_dict(torch.load(args.model_file_path))
+        
+        output_path = os.path.dirname(args.model_file_path)
+        
+        lstm_test(model, test_dataloader, device, output_path, tgt_id2w)
 
 
 # データローダーに使う関数

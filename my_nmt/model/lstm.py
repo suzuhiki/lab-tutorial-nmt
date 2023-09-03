@@ -17,6 +17,7 @@ class LSTM(nn.Module):
         generate_size = src.size(1) + 50
         
         hidden_vec = self.encoder(src)
+        
         vocab_vec = self.decoder(tgt, hidden_vec, generate_size)
         
         output = vocab_vec

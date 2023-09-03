@@ -3,22 +3,34 @@ import torch
 from nltk.translate.bleu_score import sentence_bleu
 from nltk.translate.bleu_score import SmoothingFunction
 import numpy as np
+from tqdm import tqdm
+from torch.utils.tensorboard import SummaryWriter
+
+from ..util.first_debugger import FirstDebugger
 
 def lstm_train(model, train_dataloader, dev_dataloader, optimizer, criterion, epoch_num, device,
-               batch_size, tgt_id2w, model_save_span: int, model_save_path):
+               batch_size, tgt_id2w, model_save_span: int, model_save_path, writer: SummaryWriter):
     for epoch in range(1, epoch_num+1):
         model.train()
         epoch_loss = 0
         bleu_list = []
         
-        for src, dst in train_dataloader:
+        for src, dst in tqdm(train_dataloader):
             optimizer.zero_grad()
             
             src_tensor = src.clone().detach().to(device)
             dst_tensor = dst.clone().detach().to(device)
 
             pred = model(src_tensor, dst_tensor)
+            
+            # FirstDebugger.first_stop=True
+            # FirstDebugger.debug(FirstDebugger(), "train_src_tgt", "src:{}\ntgt:{}".format(src[0],dst[0]))
 
+            # FirstDebugger.debug(FirstDebugger(), 
+            #                     "loss_elements", "pred:{}\ntgt:{}"
+            #                     .format(pred.to("cpu").detach().numpy().copy()[0],
+            #                             (torch.cat((dst[0][1:], torch.zeros(1, dtype=torch.int32)))).to("cpu").detach().numpy().copy()))
+            
             loss = torch.tensor(0, dtype=torch.float)
             for s_pred, s_dst in zip(pred, dst):
                 # 教師側は<BOS>を削除し、後ろに<PAD>を挿入
@@ -39,11 +51,11 @@ def lstm_train(model, train_dataloader, dev_dataloader, optimizer, criterion, ep
                 pred = model(src_tensor, dst_tensor)
                 
                 pred_text = []
-                en_id2w = np.vectorize(lambda id: tgt_id2w[id])
+                id2w = np.vectorize(lambda id: tgt_id2w[id])
                 for sentence in pred:
-                    pred_text.append(en_id2w(sentence)) 
+                    pred_text.append(id2w(sentence)) 
                 
-                dst_text = en_id2w(dst.to("cpu").detach().numpy().copy())
+                dst_text = id2w(dst.to("cpu").detach().numpy().copy())
                 dst_text_clean = []
                 
                 for sentence in dst_text:
@@ -58,9 +70,15 @@ def lstm_train(model, train_dataloader, dev_dataloader, optimizer, criterion, ep
                     bleu += sentence_bleu([dst], pred,  smoothing_function=SmoothingFunction().method1)
                 bleu = bleu / batch_size
                 bleu_list.append(bleu)
-                print(f"bleu: {bleu}")
+                print("bleu: {}".format(bleu))
+                print("".join(dst_text_clean[-1]))
+                
         
         if epoch % model_save_span == 0:
             torch.save(model.state_dict(), f"{model_save_path}/{epoch}_{mean(bleu_list)}.pth")
         
         print(f"epoch {epoch} in {epoch_num} ---- epoch loss:{epoch_loss}, bleu score:{mean(bleu_list)}")
+        
+        if writer != None:
+            writer.add_scalar("loss", epoch_loss, epoch)
+            writer.add_scalar("bleu", mean(bleu_list), epoch)
