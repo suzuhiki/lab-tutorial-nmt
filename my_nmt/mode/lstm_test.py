@@ -52,7 +52,7 @@ def lstm_test(model, test_dataloader, batch_size, device, ouput_path, id2w):
     
     pred_for_out = []
     for text in pred_text_clean:
-        pred_for_out.append("".join(text))
+        pred_for_out.append(" ".join(text))
     
-    with open("{}/{}".format(ouput_path, "test_out.txt"), "w") as f:
+    with open("{}/{}_{}.txt".format(ouput_path, "test", bleu_all), "w") as f:
         f.write("\n".join(pred_for_out))
