@@ -9,5 +9,7 @@ python3 -m my_nmt \
 --tgt_train_path /home/morioka/workspace/git_projects/lab-tutorial-nmt/resource/tokenized/train-1.short.ja \
 --tgt_dev_path /home/morioka/workspace/git_projects/lab-tutorial-nmt/resource/tokenized/dev.ja \
 --learning_rate 0.001 \
---epoch_num 28
+--epoch_num 28 \
+--dropout 0.2 \
+--weight_decay 0.00001 \
 

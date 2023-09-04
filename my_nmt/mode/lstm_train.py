@@ -48,7 +48,6 @@ def lstm_train(model, train_dataloader, dev_dataloader, optimizer, criterion, ep
                 id2w = np.vectorize(lambda id: tgt_id2w[id])
                 for sentence in pred:
                     pred_text.append(id2w(sentence)) 
-                    print(id2w(sentence))
                 
                 dst_text = id2w(dst.to("cpu").detach().numpy().copy())
                 dst_text_clean = []
@@ -65,8 +64,8 @@ def lstm_train(model, train_dataloader, dev_dataloader, optimizer, criterion, ep
                 bleu = 0
                 for pred_c, dst_c in zip(pred_text, dst_text_clean):
                     bleu += sentence_bleu([dst_c], pred_c,  smoothing_function=SmoothingFunction().method1)
-                    # print("".join(dst_c))
-                    # print("".join(pred_c))
+                    print("".join(dst_c))
+                    print("".join(pred_c))
                 bleu = bleu / batch_size
                 bleu_list.append(bleu)
                 print("bleu: {}".format(bleu))

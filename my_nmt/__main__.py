@@ -40,6 +40,9 @@ def main():
     parser.add_argument("--mode", type=str, default="train")
     parser.add_argument("--model_file_path", type=str, default=None)
     
+    parser.add_argument("--weight_decay", type=float, default=0) # AdamのL2正則化
+    parser.add_argument("--dropout", type=float, default=0) # defaultではdropout無効
+    
     args = parser.parse_args()
     
     #初期設定
@@ -95,18 +98,18 @@ def main():
         
         src_vocab_size, tgt_vocab_size = train_dataset.get_vocab_size()
         print("語彙サイズ：src {}, tgt {}".format(src_vocab_size, tgt_vocab_size))
-        model = LSTM(args.hidden_size, src_vocab_size, tgt_vocab_size, padding_id, args.embed_size, device).to(device)
+        model = LSTM(args.hidden_size, src_vocab_size, tgt_vocab_size, padding_id, args.embed_size, device, args.dropout).to(device)
         print(model)
         
-        optimizer = torch.optim.Adam(model.parameters(), args.learning_rate)
+        optimizer = torch.optim.Adam(model.parameters(), args.learning_rate, weight_decay=args.weight_decay)
         criterion = torch.nn.CrossEntropyLoss(ignore_index=padding_id)
         
         tgt_id2w = train_dataset.get_tgt_id2w()
         
-        
-        
         lstm_train(model, train_dataloader, dev_dataloader, optimizer, criterion, args.epoch_num, device, batch_size, 
                    tgt_id2w, model_save_span=5, model_save_path=save_dir, writer=writer)
+    
+    
     elif args.mode == "test":
         train_dataset = MyDataset(args.src_train_path, args.tgt_train_path, special_token)
         
@@ -117,7 +120,7 @@ def main():
         test_detaset = MyDataset(args.src_test_path, args.tgt_test_path, special_token, *t_dicts)
         test_dataloader = DataLoader(test_detaset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_func)
         
-        model = LSTM(args.hidden_size, src_vocab_size, tgt_vocab_size, padding_id, args.embed_size, device).to(device)
+        model = LSTM(args.hidden_size, src_vocab_size, tgt_vocab_size, padding_id, args.embed_size, device, args.dropout).to(device)
         print(model)
         
         model.load_state_dict(torch.load(args.model_file_path))

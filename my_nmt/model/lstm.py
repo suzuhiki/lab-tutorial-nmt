@@ -4,12 +4,12 @@ from .lstm_encoder import LSTM_Encoder
 from .lstm_decoder import LSTM_Decoder
 
 class LSTM(nn.Module):
-    def __init__(self, hidden_size, vocab_size_src, vocab_size_tgt, padding_idx, embed_dim, device) -> None:
+    def __init__(self, hidden_size, vocab_size_src, vocab_size_tgt, padding_idx, embed_dim, device, dropout) -> None:
         super().__init__()
         
         self.vocab_size_tgt = vocab_size_tgt
-        self.encoder = LSTM_Encoder(vocab_size_src, embed_dim, hidden_size, padding_idx, device)
-        self.decoder = LSTM_Decoder(vocab_size_tgt, embed_dim, hidden_size, padding_idx, device)
+        self.encoder = LSTM_Encoder(vocab_size_src, embed_dim, hidden_size, padding_idx, device, dropout)
+        self.decoder = LSTM_Decoder(vocab_size_tgt, embed_dim, hidden_size, padding_idx, device, dropout)
 
     def forward(self, src, tgt):
         output = torch.zeros(tgt.size(0), tgt.size(1), self.vocab_size_tgt)

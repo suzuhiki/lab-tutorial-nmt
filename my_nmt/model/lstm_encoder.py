@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch
 
 class LSTM_Encoder(nn.Module):
-    def __init__(self, vocab_size, embed_dim, hidden_size, padding_id, device) -> None:
+    def __init__(self, vocab_size, embed_dim, hidden_size, padding_id, device, dropout) -> None:
         super(LSTM_Encoder, self).__init__()
 
         self.device = device
@@ -10,6 +10,7 @@ class LSTM_Encoder(nn.Module):
         self.padding_id = padding_id
         self.embedding = nn.Embedding(vocab_size, embed_dim, padding_id)
         self.lstm_cell = nn.LSTMCell(embed_dim, hidden_size) # LSTMのセル単位で処理を行う
+        self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, inputs) -> (torch.Tensor, torch.Tensor): # inputs[batch][timestep]
         mask = torch.where(inputs == self.padding_id, 1, 0)
@@ -25,7 +26,7 @@ class LSTM_Encoder(nn.Module):
                     h_c_mask[i][j] = torch.zeros(self.hidden_size, device=self.device)
 
         # inputs[batch][timestep]に格納されたword idに対してemmbeddingを実施
-        embedded_vector = self.embedding(inputs) # (batch, timestep, vocab)
+        embedded_vector = self.dropout(self.embedding(inputs)) # (batch, timestep, vocab)
 
         permuted_vec = torch.permute(embedded_vector, (1, 0, 2)) # (timestep, batch, vocab)
 
