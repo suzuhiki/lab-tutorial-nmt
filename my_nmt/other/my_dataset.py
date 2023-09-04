@@ -3,7 +3,7 @@ from torch.utils.data import Dataset
 from copy import copy
 
 class MyDataset(Dataset):
-    def __init__(self, src_path: str, tgt_path: str, special_token) -> None:
+    def __init__(self, src_path: str, tgt_path: str, special_token, src_w2id = None, src_id2w = None, tgt_w2id = None, tgt_id2w = None) -> None:
         super().__init__()
         
         self.src_path = src_path
@@ -13,13 +13,19 @@ class MyDataset(Dataset):
         self.src_dict = WordDictionary(special_token)
         self.tgt_dict = WordDictionary(special_token)
 
-        self.src_w2id, self.src_id2w = self.src_dict.create_get_dict(src_path)
-        self.tgt_w2id, self.tgt_id2w = self.tgt_dict.create_get_dict(tgt_path)
+        if src_id2w == None:
+            self.src_w2id, self.src_id2w = self.src_dict.create_get_dict(src_path)
+            self.tgt_w2id, self.tgt_id2w = self.tgt_dict.create_get_dict(tgt_path)
+        else:
+            self.src_w2id = src_w2id.copy()
+            self.src_id2w = src_id2w.copy()
+            self.tgt_w2id = tgt_w2id.copy()
+            self.tgt_id2w = tgt_id2w.copy()
+        
+        self.special_token = special_token.copy()
         
         self.src_idlines = self.wordlines_2_idlines(src_path, self.src_w2id)
         self.tgt_idlines = self.wordlines_2_idlines(tgt_path, self.tgt_w2id)
-        
-        self.special_token = special_token.copy()
     
     def __len__(self):
         return len(self.src_idlines)
@@ -36,7 +42,10 @@ class MyDataset(Dataset):
         return self.tgt_id2w
     
     def get_src_id2w(self):
-        return self.src_w2id
+        return self.src_id2w
+    
+    def get_dicts(self):
+        return self.src_w2id, self.src_id2w, self.tgt_w2id, self.tgt_id2w
     
     def wordlines_2_idlines(self, path: str, w2id: dict) -> list:
         result = []

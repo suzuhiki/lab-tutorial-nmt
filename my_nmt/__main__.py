@@ -67,24 +67,28 @@ def main():
     if args.mode not in mode_names:
         print("(--mode) trainかtestを選択してください")
         sys.exit()
-        
-    # 出力先のフォルダを作成
-    datatime_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    save_dir = "{}/{}_{}".format(args.save_dir, args.model, datatime_str)
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-    
-    # ログファイル設定
-    writer = SummaryWriter(log_dir=save_dir)
+
     
     ### 学習処理
     if args.mode == "train":
+        # 出力先のフォルダを作成
+        datatime_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        save_dir = "{}/{}_{}".format(args.save_dir, args.model, datatime_str)
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        
+        # ログファイル設定
+        writer = SummaryWriter(log_dir=save_dir)
+        
         # config出力
         with open("{}/config.json".format(save_dir), mode="w") as f:
             json.dump(vars(args), f, separators=(",", ":"), indent=4)
             
         train_dataset = MyDataset(args.src_train_path, args.tgt_train_path, special_token)
-        dev_dataset = MyDataset(args.src_dev_path, args.tgt_dev_path, special_token)
+        
+        t_dicts = train_dataset.get_dicts()
+        
+        dev_dataset = MyDataset(args.src_dev_path, args.tgt_dev_path, special_token, *t_dicts)
         
         train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_func)
         dev_dataloader = DataLoader(dev_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_func)
@@ -98,10 +102,19 @@ def main():
         criterion = torch.nn.CrossEntropyLoss(ignore_index=padding_id)
         
         tgt_id2w = train_dataset.get_tgt_id2w()
+        
+        
+        
         lstm_train(model, train_dataloader, dev_dataloader, optimizer, criterion, args.epoch_num, device, batch_size, 
                    tgt_id2w, model_save_span=5, model_save_path=save_dir, writer=writer)
     elif args.mode == "test":
-        test_detaset = MyDataset(args.src_test_path, args.tgt_test_path, special_token)
+        train_dataset = MyDataset(args.src_train_path, args.tgt_train_path, special_token)
+        
+        t_dicts = train_dataset.get_dicts()
+        src_vocab_size, tgt_vocab_size = train_dataset.get_vocab_size()
+        tgt_id2w = train_dataset.get_tgt_id2w()
+        
+        test_detaset = MyDataset(args.src_test_path, args.tgt_test_path, special_token, *t_dicts)
         test_dataloader = DataLoader(test_detaset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_func)
         
         model = LSTM(args.hidden_size, src_vocab_size, tgt_vocab_size, padding_id, args.embed_size, device).to(device)
@@ -111,7 +124,7 @@ def main():
         
         output_path = os.path.dirname(args.model_file_path)
         
-        lstm_test(model, test_dataloader, device, output_path, tgt_id2w)
+        lstm_test(model, test_dataloader, batch_size, device, output_path, tgt_id2w)
 
 
 # データローダーに使う関数

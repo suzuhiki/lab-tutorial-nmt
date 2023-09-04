@@ -23,16 +23,10 @@ def lstm_train(model, train_dataloader, dev_dataloader, optimizer, criterion, ep
 
             pred = model(src_tensor, dst_tensor)
             
-            # FirstDebugger.first_stop=True
-            # FirstDebugger.debug(FirstDebugger(), "train_src_tgt", "src:{}\ntgt:{}".format(src[0],dst[0]))
-
-            # FirstDebugger.debug(FirstDebugger(), 
-            #                     "loss_elements", "pred:{}\ntgt:{}"
-            #                     .format(pred.to("cpu").detach().numpy().copy()[0],
-            #                             (torch.cat((dst[0][1:], torch.zeros(1, dtype=torch.int32)))).to("cpu").detach().numpy().copy()))
-            
             loss = torch.tensor(0, dtype=torch.float)
             for s_pred, s_dst in zip(pred, dst):
+                # FirstDebugger.count = 3
+                # FirstDebugger.debug(FirstDebugger(), "teach_test", "pred:{}\ntgt:{}".format(s_pred,s_dst))
                 # 教師側は<BOS>を削除し、後ろに<PAD>を挿入
                 loss += criterion(s_pred, torch.cat((s_dst[1:], torch.zeros(1, dtype=torch.int32))))
 
@@ -54,6 +48,7 @@ def lstm_train(model, train_dataloader, dev_dataloader, optimizer, criterion, ep
                 id2w = np.vectorize(lambda id: tgt_id2w[id])
                 for sentence in pred:
                     pred_text.append(id2w(sentence)) 
+                    print(id2w(sentence))
                 
                 dst_text = id2w(dst.to("cpu").detach().numpy().copy())
                 dst_text_clean = []
@@ -65,13 +60,16 @@ def lstm_train(model, train_dataloader, dev_dataloader, optimizer, criterion, ep
                             tmp_list.append(word)
                     dst_text_clean.append(tmp_list)
                 
+                
+                
                 bleu = 0
-                for pred, dst in zip(pred_text, dst_text_clean):
-                    bleu += sentence_bleu([dst], pred,  smoothing_function=SmoothingFunction().method1)
+                for pred_c, dst_c in zip(pred_text, dst_text_clean):
+                    bleu += sentence_bleu([dst_c], pred_c,  smoothing_function=SmoothingFunction().method1)
+                    # print("".join(dst_c))
+                    # print("".join(pred_c))
                 bleu = bleu / batch_size
                 bleu_list.append(bleu)
                 print("bleu: {}".format(bleu))
-                print("".join(dst_text_clean[-1]))
                 
         
         if epoch % model_save_span == 0:

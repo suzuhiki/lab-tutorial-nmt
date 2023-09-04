@@ -5,13 +5,12 @@ from collections import defaultdict
 class FirstDebugger:
     # クラス変数(インスタンス間で共有)
     debug_dict = defaultdict(int)
-    first_stop = False
+    count = 1
     
     def debug(self, key: str, info: str) -> None:
         if self.debug_dict[key] == 0:
             self.debug_dict[key] += 1
             print("key:{}\ninfo:{}".format(key, info))
-        else:
-            if self.first_stop:
-                print("FirstDebugger: key({})が2回入力されたため終了します".format(key))
-                sys.exit()
+        elif self.debug_dict[key] >= self.count:
+            print("FirstDebugger: key({})が2回入力されたため終了します".format(key))
+            sys.exit()
