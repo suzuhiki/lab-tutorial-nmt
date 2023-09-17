@@ -13,6 +13,7 @@ class LSTM_Encoder(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, inputs) -> (torch.Tensor, torch.Tensor): # inputs[batch][timestep]
+        # <pad>の部分に1を割り当てる
         mask = torch.where(inputs == self.padding_id, 1, 0)
 
         # batchとtimestepの次元を入れ替え
@@ -23,7 +24,8 @@ class LSTM_Encoder(nn.Module):
         for i, timestep in enumerate(mask):
             for j, batch in enumerate(timestep):
                 if batch == 1:
-                    h_c_mask[i][j] = torch.zeros(self.hidden_size, device=self.device)
+                    # <pad>に対応するhiddenには1を設定する
+                    h_c_mask[i][j] = torch.ones(self.hidden_size, device=self.device)
 
         # inputs[batch][timestep]に格納されたword idに対してemmbeddingを実施
         embedded_vector = self.dropout(self.embedding(inputs)) # (batch, timestep, vocab)
