@@ -4,7 +4,7 @@
 # LSTMCellを用いたLSTM Seq2Seqの実装
 英日対訳コーパス ASPEC(https://jipsti.jst.go.jp/aspec/) を用いて、英語から日本語への翻訳を実装しました。
 
-実装にはtorch.LSTMCellを利用しています。
+実装にはPytorchを利用しています。
 ## ファイルの場所
 配置しているファイルの場所を示します。なお、学習データと外部ソフト(Kyteaとmoses)のスクリプトは付属していません。
 
