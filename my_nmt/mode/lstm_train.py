@@ -25,9 +25,6 @@ def lstm_train(model, train_dataloader, dev_dataloader, optimizer, criterion, ep
             
             loss = torch.tensor(0, dtype=torch.float)
             for s_pred, s_dst in zip(pred, dst):
-                # FirstDebugger.count = 3
-                # FirstDebugger.debug(FirstDebugger(), "teach_test", "pred:{}\ntgt:{}".format(s_pred,s_dst))
-                # 教師側は<BOS>を削除し、後ろに<PAD>を挿入
                 loss += criterion(s_pred, torch.cat((s_dst[1:], torch.zeros(1, dtype=torch.int32))))
 
             epoch_loss += loss.to("cpu").detach().numpy().copy()
@@ -64,8 +61,8 @@ def lstm_train(model, train_dataloader, dev_dataloader, optimizer, criterion, ep
                 bleu = 0
                 for pred_c, dst_c in zip(pred_text, dst_text_clean):
                     bleu += sentence_bleu([dst_c], pred_c,  smoothing_function=SmoothingFunction().method1)
-                    print("".join(dst_c))
-                    print("".join(pred_c))
+                    print("dst:" + "".join(dst_c))
+                    print("pred" + "".join(pred_c))
                 bleu = bleu / batch_size
                 bleu_list.append(bleu)
                 print("bleu: {}".format(bleu))

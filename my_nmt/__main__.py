@@ -12,6 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from .other.my_dataset import MyDataset
 from .model.lstm import LSTM
+from .model.alstm import ALSTM
 from .mode.lstm_train import lstm_train
 from .mode.lstm_test import lstm_test
 
@@ -57,7 +58,7 @@ def main():
     batch_size = args.batch_size
     padding_id = special_token["<pad>"]
     
-    model_names = ["LSTM"]
+    model_names = ["LSTM", "ALSTM"]
     mode_names = ["train", "test"]
     
     # コマンドライン引数確認
@@ -98,7 +99,12 @@ def main():
         
         src_vocab_size, tgt_vocab_size = train_dataset.get_vocab_size()
         print("語彙サイズ：src {}, tgt {}".format(src_vocab_size, tgt_vocab_size))
-        model = LSTM(args.hidden_size, src_vocab_size, tgt_vocab_size, padding_id, args.embed_size, device, args.dropout).to(device)
+        
+        if args.model == "LSTM":
+            model = LSTM(args.hidden_size, src_vocab_size, tgt_vocab_size, padding_id, args.embed_size, device, args.dropout).to(device)
+        elif args.model == "ALSTM":
+            model = ALSTM(args.hidden_size, src_vocab_size, tgt_vocab_size, padding_id, args.embed_size, device, args.dropout).to(device)
+            
         print(model)
         
         optimizer = torch.optim.Adam(model.parameters(), args.learning_rate, weight_decay=args.weight_decay)
@@ -107,7 +113,7 @@ def main():
         tgt_id2w = train_dataset.get_tgt_id2w()
         
         lstm_train(model, train_dataloader, dev_dataloader, optimizer, criterion, args.epoch_num, device, batch_size, 
-                   tgt_id2w, model_save_span=5, model_save_path=save_dir, writer=writer)
+                   tgt_id2w, model_save_span=3, model_save_path=save_dir, writer=writer)
     
     
     elif args.mode == "test":
@@ -120,7 +126,11 @@ def main():
         test_detaset = MyDataset(args.src_test_path, args.tgt_test_path, special_token, *t_dicts)
         test_dataloader = DataLoader(test_detaset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_func)
         
-        model = LSTM(args.hidden_size, src_vocab_size, tgt_vocab_size, padding_id, args.embed_size, device, args.dropout).to(device)
+        if args.model == "LSTM":
+            model = LSTM(args.hidden_size, src_vocab_size, tgt_vocab_size, padding_id, args.embed_size, device, args.dropout).to(device)
+        elif args.model == "ALSTM":
+            model = ALSTM(args.hidden_size, src_vocab_size, tgt_vocab_size, padding_id, args.embed_size, device, args.dropout).to(device)
+            
         print(model)
         
         model.load_state_dict(torch.load(args.model_file_path))
