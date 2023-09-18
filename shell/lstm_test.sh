@@ -13,5 +13,5 @@ python3 -m my_nmt \
 --src_test_path /home/morioka/workspace/git_projects/lab-tutorial-nmt/resource/tokenized/test.en \
 --tgt_test_path /home/morioka/workspace/git_projects/lab-tutorial-nmt/resource/tokenized/test.ja \
 --mode test \
---model_file_path /home/morioka/workspace/git_projects/lab-tutorial-nmt/output/LSTM_20230904_111500/25_0.06782205756407735.pth \
-
+--model_file_path /home/morioka/workspace/git_projects/lab-tutorial-nmt/output/ALSTM_20230917_211510_add_dropout/27_0.14088462024260986.pth \
+--model ALSTM \
