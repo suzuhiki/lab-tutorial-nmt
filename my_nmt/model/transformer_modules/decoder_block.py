@@ -16,15 +16,18 @@ class DecoderBlock(nn.Module):
         self.dropout_2 = nn.Dropout(dropout)
         self.dropout_3 = nn.Dropout(dropout)
         
-    def forward(self, x, y, mask):
-        Q = K = V = x
-        x = self.s_MHA(Q, K, V, mask)
+    def forward(self, decoder_input, encoder_state, mask, s_mask = None):
+        Q = K = V = decoder_input
+        if s_mask is None:
+            x = self.s_MHA(Q, K, V, mask)
+        else:
+            x = self.s_MHA(Q, K, V, s_mask)
         x = self.dropout_1(x)
-        x = x + Q
+        x = decoder_input + Q
         x = self.layer_norm_1(x)
         Q = x
-        K = V = y
-        x = self.ed_MHA(Q, K, V)
+        K = V = encoder_state
+        x = self.ed_MHA(Q, K, V, mask)
         x = self.dropout_2(x)
         x = x + Q
         x = self.layer_norm_2(x)

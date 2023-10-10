@@ -15,10 +15,10 @@ class EncoderBlock(nn.Module):
         self.dropout_1 = nn.Dropout(dropout)
         self.dropout_2 = nn.Dropout(dropout)
         
-    def forward(self, input):
+    def forward(self, input, mask):
         Q = K = V = input
         
-        x = self.MHA(Q, K ,V)
+        x = self.MHA(Q, K ,V, mask)
         x = self.dropout_1(x)
         
         # 残差接続

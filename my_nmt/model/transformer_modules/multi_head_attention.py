@@ -24,11 +24,11 @@ class MultiHeadAttention(nn.Module):
         self.linear_out = nn.Linear(feature_dim, feature_dim, bias= False)
     
     # Q,K,V (batch_size, word_len, feature)
-    def forward(self, Q, K, V, mask = None):
+    def forward(self, Q, K, V, mask):
         
         split_QKVs = self.split_head(Q,K,V)
         
-        result = self.attention(split_QKVs)
+        result = self.attention(split_QKVs, mask)
         
         return result
     
@@ -55,8 +55,8 @@ class MultiHeadAttention(nn.Module):
         
         return result
     
-    # QKVs (QKV, head_num, batch_size, word_num, hidden_dim)
-    def attention(self, QKVs, mask = None):
+    # QKVs (QKV, head_num, batch_size, word_num, hidden_dim), mask (batch_size, word_len)
+    def attention(self, QKVs, mask):
         
         # (head_num, batch_size, word_num, hidden_dim)
         Q = QKVs[0]
@@ -69,18 +69,22 @@ class MultiHeadAttention(nn.Module):
         # (head_num, batch_size, word_num(Q), word_num(K))
         QK = torch.matmul(Q, K_t)
         # scaled dot attentionの重み
-        QK = QK/(self.hidden_dim ** 0.5)
+        QK = (QK/(self.hidden_dim ** 0.5)).to(self.device)
         
-        if mask is not None:
-            QK = QK * mask
+        attntion_mask = torch.where(mask == 0, 0, -sys.maxsize).to(self.device)
+        attntion_mask = attntion_mask.unsqueeze(-1)
+        sized_mask = torch.zeros(QK[0].size()).to(self.device)
+        sized_mask = (sized_mask + attntion_mask).to(self.device)
+
+        QK = QK + attntion_mask
         
         # word_num(Q)の次元でsoftmax
         softmax_QK = self.softmax(QK)
-        softmax_QK = self.dropout(softmax_QK)
+        softmax_QK = self.dropout(softmax_QK).to(self.device)
         
         # KとVのword_numは同じなので
         # (head_num, batch_size, word_num(Q), hidden_dim)
-        QKV = torch.matmul(softmax_QK, V)
+        QKV = torch.matmul(softmax_QK, V.to(self.device))
         
         # (batch_size, word_num(Q), hidden_dim)
         result = self.concat_head(QKV)

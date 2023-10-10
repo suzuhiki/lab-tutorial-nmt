@@ -20,12 +20,18 @@ class TransformerDecoder(nn.Module):
     def forward(self, enc_state, decoder_in,  mask, max_len = 51):
         
         if self.training == True:
+            mask = torch.where(decoder_in == self.special_token["<pad>"], 1, 0)
+            
+            s_mask = torch.ones_like(mask).triu(diagonal = 1)
+            s_mask = s_mask + mask
+            s_mask = torch.where(s_mask >= 1, 1, 0)
+            
             x = self.embed(decoder_in)
             x = x*(self.feature_dim**0.5)
             x = self.pos_enc(x)
             x = self.dropout(x)
             for decoder_block in self.decoder_blocks:
-                x = decoder_block(x, enc_state, mask)
+                x = decoder_block(x, enc_state, mask, s_mask)
             x = self.linear(x)
             return x
         
@@ -35,7 +41,7 @@ class TransformerDecoder(nn.Module):
             input_data = initial_data
             
             for i in range(max_len):
-                mask = nn.Transformer.generate_square_subsequent_mask(i+1).to(self.device)
+                mask = torch.where(input_data == self.special_token["<pad>"], 1, 0)
                 
                 x = self.embed(input_data)
                 x = x*(self.feature_dim**0.5)
