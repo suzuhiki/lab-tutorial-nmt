@@ -12,8 +12,9 @@ class MultiHeadAttention(nn.Module):
         if feature_dim % head_num != 0:
             print("[error] MultiHeadAttentionのhead数は埋め込み次元で割り切れる数にしてください")
             sys.exit()
-        self.hidden_dim = feature_dim/head_num
+        self.hidden_dim = int(feature_dim/head_num)
         
+        print("feature:" + str(feature_dim) + " hidden:" + str(self.hidden_dim))
         self.linear_Ks = nn.ModuleList([nn.Linear(in_features=feature_dim, out_features=self.hidden_dim, bias=False) for _ in range(head_num)])
         self.linear_Vs = nn.ModuleList([nn.Linear(feature_dim, self.hidden_dim, bias=False) for _ in range(head_num)])
         self.linear_Qs = nn.ModuleList([nn.Linear(feature_dim, self.hidden_dim, bias=False) for _ in range(head_num)])

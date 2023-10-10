@@ -9,7 +9,7 @@ class Transformer(nn.Module):
         super().__init__()
         
         self.encoder = TransformerEncoder(vocab_size_src, feature_dim, dropout, head_num, special_token, ff_hidden_size, block_num)
-        self.decoder = TransformerDecoder(vocab_size_tgt, feature_dim, dropout, head_num, ff_hidden_size, block_num)
+        self.decoder = TransformerDecoder(vocab_size_tgt, feature_dim, dropout, head_num, special_token, ff_hidden_size, block_num)
 
     def forward(self, src, tgt, mask):
         encoder_state = self.encoder(src)
