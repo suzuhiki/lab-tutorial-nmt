@@ -24,10 +24,12 @@ def transformer_train(model, train_dataloader, dev_dataloader, optimizer, criter
             mask = nn.Transformer.generate_square_subsequent_mask(dst_tensor.size(1)).to(device)
 
             pred = model(src_tensor, dst_tensor, mask)
+        
             
-            loss = torch.tensor(0, dtype=torch.float)
+            loss = torch.tensor(0, dtype=torch.float).to(device)
             for s_pred, s_dst in zip(pred, dst):
-                loss += criterion(s_pred, torch.cat((s_dst[1:], torch.zeros(1, dtype=torch.int32))))
+                dst = torch.cat((s_dst[1:], torch.zeros(1, dtype=torch.int32))).to(device)
+                loss += criterion(s_pred, dst)
 
             epoch_loss += loss.to("cpu").detach().numpy().copy()
 
@@ -43,6 +45,7 @@ def transformer_train(model, train_dataloader, dev_dataloader, optimizer, criter
                 
                 # pred (batch_size, word_len)
                 pred = model(src_tensor, dst_tensor)
+                pred = pred.to("cpu").detach().numpy().copy()
                 
                 pred_text = []
                 id2w = np.vectorize(lambda id: tgt_id2w[id])

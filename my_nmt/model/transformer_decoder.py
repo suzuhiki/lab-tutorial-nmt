@@ -7,6 +7,7 @@ class TransformerDecoder(nn.Module):
     def __init__(self, dec_vocab_dim, feature_dim, dropout, head_num, special_token, device, ff_hidden_dim = 2048, block_num = 6) -> None:
         super(TransformerDecoder, self).__init__()
         
+        self.device = device
         self.special_token = special_token
         self.dec_vocab_dim = dec_vocab_dim
         self.feature_dim = feature_dim
@@ -16,7 +17,7 @@ class TransformerDecoder(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.linear = nn.Linear(feature_dim, dec_vocab_dim)
         
-    def forward(self, enc_state, decoder_in, mask, max_len):
+    def forward(self, enc_state, decoder_in,  mask, max_len = 51):
         
         if self.training == True:
             x = self.embed(decoder_in)
@@ -30,10 +31,12 @@ class TransformerDecoder(nn.Module):
         
         else:
             batch_size = enc_state.size(0)
-            initial_data = torch.full((batch_size, 1), self.special_token["<bos>"])
+            initial_data = torch.full((batch_size, 1), self.special_token["<bos>"]).to(self.device)
             input_data = initial_data
             
             for i in range(max_len):
+                mask = nn.Transformer.generate_square_subsequent_mask(i+1).to(self.device)
+                
                 x = self.embed(input_data)
                 x = x*(self.feature_dim**0.5)
                 x = self.pos_enc(x)
