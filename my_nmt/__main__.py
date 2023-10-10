@@ -9,12 +9,15 @@ import datetime
 from torch.utils.data import DataLoader
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.tensorboard import SummaryWriter
+import torch.nn as nn
 
 from .other.my_dataset import MyDataset
 from .model.lstm import LSTM
 from .model.alstm import ALSTM
+from .model.transformer import Transformer
 from .mode.lstm_train import lstm_train
 from .mode.lstm_test import lstm_test
+from .mode.transformer_train import transformer_train
 
 
 def main():    
@@ -44,6 +47,11 @@ def main():
     parser.add_argument("--weight_decay", type=float, default=0) # AdamのL2正則化
     parser.add_argument("--dropout", type=float, default=0) # defaultではdropout無効
     
+    parser.add_argument("--head_num", type=int, default=8)
+    parser.add_argument("--ff_hidden_size", type=int, default=2048)
+    parser.add_argument("--feature_dim", type=int, default=512)
+    parser.add_argument("--block_num", type=int, default=6)
+    
     args = parser.parse_args()
     
     #初期設定
@@ -58,7 +66,7 @@ def main():
     batch_size = args.batch_size
     padding_id = special_token["<pad>"]
     
-    model_names = ["LSTM", "ALSTM"]
+    model_names = ["LSTM", "ALSTM", "Transformer"]
     mode_names = ["train", "test"]
     
     # コマンドライン引数確認
@@ -100,20 +108,33 @@ def main():
         src_vocab_size, tgt_vocab_size = train_dataset.get_vocab_size()
         print("語彙サイズ：src {}, tgt {}".format(src_vocab_size, tgt_vocab_size))
         
-        if args.model == "LSTM":
-            model = LSTM(args.hidden_size, src_vocab_size, tgt_vocab_size, padding_id, args.embed_size, device, args.dropout).to(device)
-        elif args.model == "ALSTM":
-            model = ALSTM(args.hidden_size, src_vocab_size, tgt_vocab_size, padding_id, args.embed_size, device, args.dropout).to(device)
+        if args.model == "Transformer":
+            model = Transformer(src_vocab_size, tgt_vocab_size, args.dropout, args.head_num, args.feature_dim, special_token, args.block_num, args.ff_hidden_size).to(device)
+            print(model)
             
-        print(model)
-        
-        optimizer = torch.optim.Adam(model.parameters(), args.learning_rate, weight_decay=args.weight_decay)
-        criterion = torch.nn.CrossEntropyLoss(ignore_index=padding_id)
-        
-        tgt_id2w = train_dataset.get_tgt_id2w()
-        
-        lstm_train(model, train_dataloader, dev_dataloader, optimizer, criterion, args.epoch_num, device, batch_size, 
-                   tgt_id2w, model_save_span=3, model_save_path=save_dir, writer=writer)
+            optimizer = torch.optim.Adam(model.parameters(), args.learning_rate, weight_decay=args.weight_decay)
+            criterion = torch.nn.CrossEntropyLoss(ignore_index=padding_id)
+            
+            tgt_id2w = train_dataset.get_tgt_id2w()
+            
+            transformer_train(model, train_dataloader, dev_dataloader, optimizer, criterion, args.epoch_num, device, batch_size,
+                              tgt_id2w, model_save_span=3, model_save_path=save_dir, writer=writer)
+            
+        else:
+            if args.model == "LSTM":
+                model = LSTM(args.hidden_size, src_vocab_size, tgt_vocab_size, padding_id, args.embed_size, device, args.dropout).to(device)
+            elif args.model == "ALSTM":
+                model = ALSTM(args.hidden_size, src_vocab_size, tgt_vocab_size, padding_id, args.embed_size, device, args.dropout).to(device)
+
+            print(model)
+
+            optimizer = torch.optim.Adam(model.parameters(), args.learning_rate, weight_decay=args.weight_decay)
+            criterion = torch.nn.CrossEntropyLoss(ignore_index=padding_id)
+
+            tgt_id2w = train_dataset.get_tgt_id2w()
+
+            lstm_train(model, train_dataloader, dev_dataloader, optimizer, criterion, args.epoch_num, device, batch_size, 
+                       tgt_id2w, model_save_span=3, model_save_path=save_dir, writer=writer)
     
     
     elif args.mode == "test":
