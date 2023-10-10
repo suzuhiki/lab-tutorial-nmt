@@ -3,18 +3,18 @@ import torch.nn as nn
 import sys
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, feature_dim, head_num, dropout) -> None:
+    def __init__(self, feature_dim, head_num, dropout, device) -> None:
         super(MultiHeadAttention, self).__init__()
         
         self.head_num = head_num
         self.feature_dim = feature_dim
+        self.device = device
         
         if feature_dim % head_num != 0:
             print("[error] MultiHeadAttentionのhead数は埋め込み次元で割り切れる数にしてください")
             sys.exit()
         self.hidden_dim = int(feature_dim/head_num)
         
-        print("feature:" + str(feature_dim) + " hidden:" + str(self.hidden_dim))
         self.linear_Ks = nn.ModuleList([nn.Linear(in_features=feature_dim, out_features=self.hidden_dim, bias=False) for _ in range(head_num)])
         self.linear_Vs = nn.ModuleList([nn.Linear(feature_dim, self.hidden_dim, bias=False) for _ in range(head_num)])
         self.linear_Qs = nn.ModuleList([nn.Linear(feature_dim, self.hidden_dim, bias=False) for _ in range(head_num)])
@@ -37,9 +37,9 @@ class MultiHeadAttention(nn.Module):
         
         result = []
         # (QKV, head_num, batch_size, word_len, hidden_dim)
-        result[0] = torch.zeros(self.head_num, Q.size(0), Q.size(1), self.hidden_dim)
-        result[1] = torch.zeros(self.head_num, K.size(0), K.size(1), self.hidden_dim)
-        result[2] = torch.zeros(self.head_num, V.size(0), V.size(1), self.hidden_dim)
+        result.append(torch.zeros(self.head_num, Q.size(0), Q.size(1), self.hidden_dim))
+        result.append(torch.zeros(self.head_num, K.size(0), K.size(1), self.hidden_dim))
+        result.append(torch.zeros(self.head_num, V.size(0), V.size(1), self.hidden_dim))
         
         for i in range(self.head_num):
             result[0][i] = self.linear_Qs[i](Q)
@@ -50,7 +50,7 @@ class MultiHeadAttention(nn.Module):
     
     # Qs (head_num, batch_size, word_num, hidden_dim) 
     def concat_head(self, Qs):
-        result = torch.cat(Qs, 3)
+        result = torch.cat([Qs[i] for i in range(self.head_num)], dim=2).to(self.device)
         result = self.linear_out(result)
         
         return result

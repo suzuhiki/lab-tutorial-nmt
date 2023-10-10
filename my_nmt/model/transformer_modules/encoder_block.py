@@ -5,10 +5,10 @@ from .feed_forward import FeedForward
 from .multi_head_attention import MultiHeadAttention
 
 class EncoderBlock(nn.Module):
-    def __init__(self, feature_dim, head_num, dropout, ff_hidden_dim) -> None:
+    def __init__(self, feature_dim, head_num, dropout, ff_hidden_dim, device) -> None:
         super(EncoderBlock, self).__init__()
         
-        self.MHA = MultiHeadAttention(feature_dim, head_num, dropout)
+        self.MHA = MultiHeadAttention(feature_dim, head_num, dropout, device)
         self.layer_norm_1 = nn.LayerNorm([feature_dim])
         self.layer_norm_2 = nn.LayerNorm([feature_dim])
         self.FF = FeedForward(dropout, feature_dim, ff_hidden_dim=ff_hidden_dim)

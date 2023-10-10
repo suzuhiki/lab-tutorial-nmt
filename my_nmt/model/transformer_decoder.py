@@ -4,7 +4,7 @@ from .transformer_modules.positinal_encoding import PositionalEncoding
 from .transformer_modules.decoder_block import DecoderBlock
 
 class TransformerDecoder(nn.Module):
-    def __init__(self, dec_vocab_dim, feature_dim, dropout, head_num, special_token, ff_hidden_dim = 2048, block_num = 6) -> None:
+    def __init__(self, dec_vocab_dim, feature_dim, dropout, head_num, special_token, device, ff_hidden_dim = 2048, block_num = 6) -> None:
         super(TransformerDecoder, self).__init__()
         
         self.special_token = special_token
@@ -12,7 +12,7 @@ class TransformerDecoder(nn.Module):
         self.feature_dim = feature_dim
         self.embed = nn.Embedding(dec_vocab_dim, feature_dim, special_token["<pad>"])
         self.pos_enc = PositionalEncoding(feature_dim, dropout)
-        self.decoder_blocks = nn.ModuleList([DecoderBlock(feature_dim, head_num, dropout, ff_hidden_dim) for _ in range(block_num)])
+        self.decoder_blocks = nn.ModuleList([DecoderBlock(feature_dim, head_num, dropout, ff_hidden_dim, device) for _ in range(block_num)])
         self.dropout = nn.Dropout(dropout)
         self.linear = nn.Linear(feature_dim, dec_vocab_dim)
         

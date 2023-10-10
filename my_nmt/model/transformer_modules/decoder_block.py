@@ -4,10 +4,10 @@ from .multi_head_attention import MultiHeadAttention
 from .feed_forward import FeedForward
 
 class DecoderBlock(nn.Module):
-    def __init__(self, feature_dim, head_num, dropout, ff_hidden_dim) -> None:
+    def __init__(self, feature_dim, head_num, dropout, ff_hidden_dim, device) -> None:
         super().__init__()
-        self.s_MHA = MultiHeadAttention(feature_dim, head_num, dropout)
-        self.ed_MHA = MultiHeadAttention(feature_dim, head_num, dropout)
+        self.s_MHA = MultiHeadAttention(feature_dim, head_num, dropout, device)
+        self.ed_MHA = MultiHeadAttention(feature_dim, head_num, dropout, device)
         self.layer_norm_1 = nn.LayerNorm([feature_dim])
         self.layer_norm_2 = nn.LayerNorm([feature_dim])
         self.layer_norm_3 = nn.LayerNorm([feature_dim])

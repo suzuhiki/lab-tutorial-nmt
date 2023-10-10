@@ -109,7 +109,7 @@ def main():
         print("語彙サイズ：src {}, tgt {}".format(src_vocab_size, tgt_vocab_size))
         
         if args.model == "Transformer":
-            model = Transformer(src_vocab_size, tgt_vocab_size, args.dropout, args.head_num, args.feature_dim, special_token, args.block_num, args.ff_hidden_size).to(device)
+            model = Transformer(src_vocab_size, tgt_vocab_size, args.dropout, args.head_num, args.feature_dim, special_token, device, args.block_num, args.ff_hidden_size).to(device)
             print(model)
             
             optimizer = torch.optim.Adam(model.parameters(), args.learning_rate, weight_decay=args.weight_decay)
