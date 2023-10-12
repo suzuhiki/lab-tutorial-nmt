@@ -11,9 +11,13 @@ class Transformer(nn.Module):
         self.encoder = TransformerEncoder(vocab_size_src, feature_dim, dropout, head_num, special_token, device, ff_hidden_size, block_num)
         self.decoder = TransformerDecoder(vocab_size_tgt, feature_dim, dropout, head_num, special_token, device, ff_hidden_size, block_num)
 
-    def forward(self, src, tgt, mask = None):
+    def forward(self, src, tgt):
+        print("src:{}".format(src.size()))
+        print(src)
+
+
         gen_len = src.size(1) + 50
         
         encoder_state = self.encoder(src)
-        vocab_vec = self.decoder(encoder_state, tgt, mask, gen_len)
+        vocab_vec = self.decoder(encoder_state, tgt, gen_len)
         return vocab_vec

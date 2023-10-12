@@ -16,8 +16,9 @@ class TransformerDecoder(nn.Module):
         self.decoder_blocks = nn.ModuleList([DecoderBlock(feature_dim, head_num, dropout, ff_hidden_dim, device) for _ in range(block_num)])
         self.dropout = nn.Dropout(dropout)
         self.linear = nn.Linear(feature_dim, dec_vocab_dim)
+        self.softmax = nn.Softmax(dim=2)
         
-    def forward(self, enc_state, decoder_in,  mask, max_len = 51):
+    def forward(self, enc_state, decoder_in, max_len = 51):
         
         if self.training == True:
             mask = torch.where(decoder_in == self.special_token["<pad>"], 1, 0)
@@ -33,6 +34,7 @@ class TransformerDecoder(nn.Module):
             for decoder_block in self.decoder_blocks:
                 x = decoder_block(x, enc_state, mask, s_mask)
             x = self.linear(x)
+            x = self.softmax(x)
             return x
         
         else:

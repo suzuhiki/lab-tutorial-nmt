@@ -21,14 +21,14 @@ def transformer_train(model, train_dataloader, dev_dataloader, optimizer, criter
             
             src_tensor = src.clone().detach().to(device)
             dst_tensor = dst.clone().detach().to(device)
-            mask = nn.Transformer.generate_square_subsequent_mask(dst_tensor.size(1)).to(device)
 
-            pred = model(src_tensor, dst_tensor, mask)
+            pred = model(src_tensor, dst_tensor)
         
             
             loss = torch.tensor(0, dtype=torch.float).to(device)
             for s_pred, s_dst in zip(pred, dst):
                 dst = torch.cat((s_dst[1:], torch.zeros(1, dtype=torch.int32))).to(device)
+                # print(dst)
                 loss += criterion(s_pred, dst)
 
             epoch_loss += loss.to("cpu").detach().numpy().copy()
@@ -67,8 +67,8 @@ def transformer_train(model, train_dataloader, dev_dataloader, optimizer, criter
                 bleu = 0
                 for pred_c, dst_c in zip(pred_text, dst_text_clean):
                     bleu += sentence_bleu([dst_c], pred_c,  smoothing_function=SmoothingFunction().method1)
-                    print("dst:" + "".join(dst_c))
-                    print("pred" + "".join(pred_c))
+                    # print("dst:" + "".join(dst_c))
+                    # print("pred" + "".join(pred_c))
                 bleu = bleu / batch_size
                 bleu_list.append(bleu)
                 print("bleu: {}".format(bleu))
