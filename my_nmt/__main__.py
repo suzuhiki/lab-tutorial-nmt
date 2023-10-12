@@ -20,7 +20,11 @@ from .mode.lstm_test import lstm_test
 from .mode.transformer_train import transformer_train
 
 
-def main():    
+def main():
+    # for debug
+    torch.set_printoptions(edgeitems=1000)
+    torch.autograd.set_detect_anomaly(True)
+
     # コマンドライン引数読み取り
     parser = argparse.ArgumentParser()
     

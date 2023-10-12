@@ -26,8 +26,20 @@ class MultiHeadAttention(nn.Module):
     # Q,K,V (batch_size, word_len, feature)
     def forward(self, Q, K, V, mask):
         
+        # print("Q: {}".format(Q.size()))
+        # print(Q)
+
+        # print("K: {}".format(K.size()))
+        # print(K)
+
+        # print("V: {}".format(V.size()))
+        # print(V)
+
+
+
         split_QKVs = self.split_head(Q,K,V)
-        
+        # print("split_QKVs: {}".format(split_QKVs[0].size()))
+
         result = self.attention(split_QKVs, mask)
         
         return result
@@ -63,7 +75,7 @@ class MultiHeadAttention(nn.Module):
         K = QKVs[1]
         V = QKVs[2]
         
-        # (head_num, batch_size, hidden_dim, word_num)
+        # (head_num, batch_size, hidden_dim, word_num(K))
         K_t = torch.permute(K, (0, 1, 3, 2))
         
         # (head_num, batch_size, word_num(Q), word_num(K))

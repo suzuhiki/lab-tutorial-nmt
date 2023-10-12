@@ -4,6 +4,7 @@ from torch import nn as nn
 from nltk.translate.bleu_score import sentence_bleu
 from nltk.translate.bleu_score import SmoothingFunction
 import numpy as np
+import sys
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 
@@ -13,7 +14,7 @@ def transformer_train(model, train_dataloader, dev_dataloader, optimizer, criter
                batch_size, tgt_id2w, model_save_span: int, model_save_path, writer: SummaryWriter):
     for epoch in range(1, epoch_num+1):
         model.train()
-        epoch_loss = 0
+        epoch_loss = torch.tensor(0, dtype=torch.float).to(device)
         bleu_list = []
         
         for src, dst in tqdm(train_dataloader):
@@ -23,18 +24,16 @@ def transformer_train(model, train_dataloader, dev_dataloader, optimizer, criter
             dst_tensor = dst.clone().detach().to(device)
 
             pred = model(src_tensor, dst_tensor)
-        
             
             loss = torch.tensor(0, dtype=torch.float).to(device)
             for s_pred, s_dst in zip(pred, dst):
-                dst = torch.cat((s_dst[1:], torch.zeros(1, dtype=torch.int32))).to(device)
-                # print(dst)
-                loss += criterion(s_pred, dst)
+                dst_edit = torch.cat((s_dst[1:], torch.zeros(1, dtype=torch.int32))).to(device)
+                loss += criterion(s_pred, dst_edit)
 
-            epoch_loss += loss.to("cpu").detach().numpy().copy()
-
+            epoch_loss += loss
             loss.backward()
             optimizer.step()
+                
 
         # バリデーション
         model.eval()

@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import sys
 
 from .transformer_encoder import TransformerEncoder
 from .transformer_decoder import TransformerDecoder
@@ -11,11 +12,7 @@ class Transformer(nn.Module):
         self.encoder = TransformerEncoder(vocab_size_src, feature_dim, dropout, head_num, special_token, device, ff_hidden_size, block_num)
         self.decoder = TransformerDecoder(vocab_size_tgt, feature_dim, dropout, head_num, special_token, device, ff_hidden_size, block_num)
 
-    def forward(self, src, tgt):
-        print("src:{}".format(src.size()))
-        print(src)
-
-
+    def forward(self, src, tgt):        
         gen_len = src.size(1) + 50
         
         encoder_state = self.encoder(src)
