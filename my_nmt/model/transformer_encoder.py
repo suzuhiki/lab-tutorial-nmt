@@ -17,9 +17,7 @@ class TransformerEncoder(nn.Module):
         self.encoder_blocks = nn.ModuleList([EncoderBlock(feature_dim, head_num, dropout, ff_hidden_dim, device) for _ in range(block_num)]) 
     
     # x (batch_size, word_num)
-    def forward(self, x):
-        # padの部分を1にする
-        mask = torch.where(x == self.special_token["<pad>"], 1, 0)
+    def forward(self, x, mask):
 
         x = self.embed(x)
         x = x*(self.feature_dim**0.5)

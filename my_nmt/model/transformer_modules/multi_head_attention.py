@@ -11,95 +11,64 @@ class MultiHeadAttention(nn.Module):
         self.device = device
         
         if feature_dim % head_num != 0:
-            print("[error] MultiHeadAttentionのhead数は埋め込み次元で割り切れる数にしてください")
+            print("[error] MultiHeadAttentionのhead数は埋め込み次元を割り切れる数にしてください")
             sys.exit()
         self.hidden_dim = int(feature_dim/head_num)
         
-        self.linear_Ks = nn.ModuleList([nn.Linear(in_features=feature_dim, out_features=self.hidden_dim, bias=False) for _ in range(head_num)])
-        self.linear_Vs = nn.ModuleList([nn.Linear(feature_dim, self.hidden_dim, bias=False) for _ in range(head_num)])
-        self.linear_Qs = nn.ModuleList([nn.Linear(feature_dim, self.hidden_dim, bias=False) for _ in range(head_num)])
+        self.linear_K = nn.Linear(feature_dim, feature_dim, bias=False)
+        self.linear_V = nn.Linear(feature_dim, feature_dim, bias=False)
+        self.linear_Q = nn.Linear(feature_dim, feature_dim, bias=False)
         
-        self.softmax = nn.Softmax(dim = 2)
+        self.softmax = nn.Softmax(dim = -1)
         self.dropout = nn.Dropout(p=dropout)
         self.linear_out = nn.Linear(feature_dim, feature_dim, bias= False)
     
-    # Q,K,V (batch_size, word_len, feature)
-    def forward(self, Q, K, V, mask):
+    # query, key, value (batch_size, word_len, feature)
+    def forward(self, query, key, value, mask):
         
-        # print("Q: {}".format(Q.size()))
-        # print(Q)
+        Q = self.linear_Q(query)
+        K = self.linear_K(key)
+        V = self.linear_V(value)
 
-        # print("K: {}".format(K.size()))
-        # print(K)
+        # split head (batch_size, head_num, word_len, hidden_dim)
+        Q = torch.tensor_split(Q, self.head_num, dim=2)
+        Q = torch.stack(Q, dim=1)
 
-        # print("V: {}".format(V.size()))
-        # print(V)
+        K = torch.tensor_split(K, self.head_num, dim=2)
+        K = torch.stack(K, dim=1)
 
+        V = torch.tensor_split(V, self.head_num, dim=2)
+        V = torch.stack(V, dim=1)
 
-
-        split_QKVs = self.split_head(Q,K,V)
-        # print("split_QKVs: {}".format(split_QKVs[0].size()))
-
-        result = self.attention(split_QKVs, mask)
+        # calc attention (batch_size, head_num, word_len(Q), hidden_dim)
+        a = self.attention(Q, K, V, mask)
+        
+        result = self.linear_out(a)
         
         return result
     
-    # x (batch_size, word_len, feature)
-    def split_head(self, Q, K, V):
+    # Q, K, V (batch_size, head_num, word_len, hidden_dim), mask (batch_size, word_len)
+    def attention(self, Q, K, V, mask = None):
         
-        result = []
-        # (QKV, head_num, batch_size, word_len, hidden_dim)
-        result.append(torch.zeros(self.head_num, Q.size(0), Q.size(1), self.hidden_dim))
-        result.append(torch.zeros(self.head_num, K.size(0), K.size(1), self.hidden_dim))
-        result.append(torch.zeros(self.head_num, V.size(0), V.size(1), self.hidden_dim))
-        
-        for i in range(self.head_num):
-            result[0][i] = self.linear_Qs[i](Q)
-            result[1][i] = self.linear_Ks[i](K)
-            result[2][i] = self.linear_Vs[i](V)
-        
-        return result
-    
-    # Qs (head_num, batch_size, word_num, hidden_dim) 
-    def concat_head(self, Qs):
-        result = torch.cat([Qs[i] for i in range(self.head_num)], dim=2).to(self.device)
-        result = self.linear_out(result)
-        
-        return result
-    
-    # QKVs (QKV, head_num, batch_size, word_num, hidden_dim), mask (batch_size, word_len)
-    def attention(self, QKVs, mask):
-        
-        # (head_num, batch_size, word_num, hidden_dim)
-        Q = QKVs[0]
-        K = QKVs[1]
-        V = QKVs[2]
-        
-        # (head_num, batch_size, hidden_dim, word_num(K))
+        # (batch_size, head_num, hidden_dim, word_num(K))
         K_t = torch.permute(K, (0, 1, 3, 2))
         
-        # (head_num, batch_size, word_num(Q), word_num(K))
-        QK = torch.matmul(Q, K_t)
-        # scaled dot attentionの重み
-        QK = (QK/(self.hidden_dim ** 0.5)).to(self.device)
+        # (batch_size, head_num, word_num(Q), word_num(K))
+        QK = torch.matmul(Q, K_t) / (self.hidden_dim ** 0.5)
         
-        attntion_mask = torch.where(mask == 0, 0, -sys.maxsize).to(self.device)
-        attntion_mask = attntion_mask.unsqueeze(-1)
-        sized_mask = torch.zeros(QK[0].size()).to(self.device)
-        sized_mask = (sized_mask + attntion_mask).to(self.device)
-
-        QK = QK + attntion_mask
+        if mask is not None:
+            QK = QK.masked_fill(mask == 1, -1e10)
         
         # word_num(Q)の次元でsoftmax
         softmax_QK = self.softmax(QK)
-        softmax_QK = self.dropout(softmax_QK).to(self.device)
         
         # KとVのword_numは同じなので
-        # (head_num, batch_size, word_num(Q), hidden_dim)
-        QKV = torch.matmul(softmax_QK, V.to(self.device))
+        # (batch_size, head_num, word_num(Q), hidden_dim)
+        QKV = torch.matmul(self.dropout(softmax_QK), V)
+        
+        QKV = torch.tensor_split(QKV, QKV.size(1), dim=1)
         
         # (batch_size, word_num(Q), hidden_dim)
-        result = self.concat_head(QKV)
+        result = torch.concat(QKV, dim=3).squeeze(1)
+
         return result
-    
-    
