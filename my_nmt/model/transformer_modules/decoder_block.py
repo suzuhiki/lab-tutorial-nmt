@@ -18,9 +18,9 @@ class DecoderBlock(nn.Module):
         
     def forward(self, decoder_input, encoder_state, tgt_mask, s_t_mask):
         Q = K = V = decoder_input
-        print("decoder_in: {}".format(torch.argmax(Q, dim=2)[0]))
+        # print("decoder_in: {}".format(torch.argmax(Q, dim=2)[0]))
         x = self.s_MHA(Q, K, V, tgt_mask)
-        print("after_decoder_MHA: {}".format(torch.argmax(x, dim=2)[0]))
+        # print("after_decoder_MHA: {}".format(torch.argmax(x, dim=2)[0]))
         x = self.dropout_1(x)
         x = decoder_input + Q
         x = self.layer_norm_1(x)

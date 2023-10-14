@@ -19,7 +19,7 @@ class TransformerDecoder(nn.Module):
         self.linear = nn.Linear(feature_dim, dec_vocab_dim)
         self.softmax = nn.Softmax(dim=2)
         
-    def forward(self, enc_state, decoder_input, src_mask, max_len):
+    def forward(self, enc_state, decoder_input, src_mask, max_len, inference_mode = False):
         
         if self.training == True:
             tgt_mask = self.make_target_mask(decoder_input)
@@ -27,28 +27,34 @@ class TransformerDecoder(nn.Module):
         
         # 推論時 一文ずつ
         else:
-            batch_size = enc_state.size(0)
-            pred_seqs = []
             
-            for i in range(batch_size):
-                pred_seq = [self.special_token["<bos>"]]
-                
-                for _ in range(max_len):
-                    tgt_in = torch.LongTensor(pred_seq).unsqueeze(0).to(self.device)
-                    tgt_mask = self.make_target_mask(tgt_in)
-                    
-                    with torch.no_grad():
-                        output = self.decoder_process(tgt_in, enc_state[i].unsqueeze(0), tgt_mask, src_mask[i])
-                    
-                    pred_token_id = output.argmax(dim = 2)[:,-1].item()
-                    pred_seq.append(pred_token_id)
-                    
-                    if pred_token_id == self.special_token["<eos>"]:
-                        break
-                
-                pred_seqs.append(pred_seq)
-            
-            return pred_seqs
+            if inference_mode == True:
+                batch_size = enc_state.size(0)
+                pred_seqs = []
+
+                for i in range(batch_size):
+                    pred_seq = [self.special_token["<bos>"]]
+
+                    for _ in range(max_len):
+                        tgt_in = torch.LongTensor(pred_seq).unsqueeze(0).to(self.device)
+                        tgt_mask = self.make_target_mask(tgt_in)
+
+                        with torch.no_grad():
+                            output = self.decoder_process(tgt_in, enc_state[i].unsqueeze(0), tgt_mask, src_mask[i])
+
+                        pred_token_id = output.argmax(dim = 2)[:,-1].item()
+                        pred_seq.append(pred_token_id)
+
+                        if pred_token_id == self.special_token["<eos>"]:
+                            break
+                        
+                    pred_seqs.append(pred_seq)
+
+                return pred_seqs
+
+            else:
+                tgt_mask = self.make_target_mask(decoder_input)
+                return self.decoder_process(decoder_input, enc_state, tgt_mask, src_mask)
 
 
     def make_target_mask(self, decoder_input):

@@ -17,9 +17,9 @@ class EncoderBlock(nn.Module):
         
     def forward(self, input, mask):
         Q = K = V = input
-        print("encoder_in: {}".format(torch.argmax(Q, dim=2)[0]))
+        # print("encoder_in: {}".format(torch.argmax(Q, dim=2)[0]))
         x = self.MHA(Q, K ,V, mask)
-        print("after_encoder_MHA: {}".format(torch.argmax(x, dim=2)[0]))
+        # print("after_encoder_MHA: {}".format(torch.argmax(x, dim=2)[0]))
         x = self.dropout_1(x)
         
         # 残差接続

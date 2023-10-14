@@ -13,7 +13,7 @@ class Transformer(nn.Module):
         self.decoder = TransformerDecoder(vocab_size_tgt, feature_dim, dropout, head_num, special_token, max_len, device, ff_hidden_size, block_num)
         self.special_token = special_token
 
-    def forward(self, src, tgt):        
+    def forward(self, src, tgt, inference_mode = False):        
         gen_len = src.size(1) + 50
         
         # padの部分を1にする
@@ -21,5 +21,5 @@ class Transformer(nn.Module):
         
         encoder_state = self.encoder(src, src_mask)
 
-        output = self.decoder(encoder_state, tgt, src_mask, gen_len)
+        output = self.decoder(encoder_state, tgt, src_mask, gen_len, inference_mode)
         return output
