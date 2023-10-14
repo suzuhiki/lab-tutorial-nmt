@@ -57,7 +57,7 @@ class MultiHeadAttention(nn.Module):
         QK = torch.matmul(Q, K_t) / (self.hidden_dim ** 0.5)
         
         if mask is not None:
-            QK = QK.masked_fill(mask == 1, -1e10)
+            QK = QK.masked_fill(mask == 1, -float("inf"))
         
         # word_num(Q)の次元でsoftmax
         softmax_QK = self.softmax(QK)

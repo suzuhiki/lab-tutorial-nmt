@@ -20,5 +20,6 @@ class Transformer(nn.Module):
         src_mask = torch.where(src == self.special_token["<pad>"], 1, 0).unsqueeze(1).unsqueeze(2)
         
         encoder_state = self.encoder(src, src_mask)
+
         output = self.decoder(encoder_state, tgt, src_mask, gen_len)
         return output

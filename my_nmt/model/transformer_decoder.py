@@ -13,7 +13,7 @@ class TransformerDecoder(nn.Module):
         self.dec_vocab_dim = dec_vocab_dim
         self.feature_dim = feature_dim
         self.embed = nn.Embedding(dec_vocab_dim, feature_dim, special_token["<pad>"])
-        self.pos_enc = PositionalEncoding(feature_dim, dropout)
+        self.pos_enc = PositionalEncoding(feature_dim, dropout, device)
         self.decoder_blocks = nn.ModuleList([DecoderBlock(feature_dim, head_num, dropout, ff_hidden_dim, device) for _ in range(block_num)])
         self.dropout = nn.Dropout(dropout)
         self.linear = nn.Linear(feature_dim, dec_vocab_dim)

@@ -9,8 +9,8 @@ class EncoderBlock(nn.Module):
         super(EncoderBlock, self).__init__()
         
         self.MHA = MultiHeadAttention(feature_dim, head_num, dropout, device)
-        self.layer_norm_1 = nn.LayerNorm([feature_dim])
-        self.layer_norm_2 = nn.LayerNorm([feature_dim])
+        self.layer_norm_1 = nn.LayerNorm(feature_dim)
+        self.layer_norm_2 = nn.LayerNorm(feature_dim)
         self.FF = FeedForward(dropout, feature_dim, ff_hidden_dim=ff_hidden_dim)
         self.dropout_1 = nn.Dropout(dropout)
         self.dropout_2 = nn.Dropout(dropout)
@@ -22,7 +22,7 @@ class EncoderBlock(nn.Module):
         x = self.dropout_1(x)
         
         # 残差接続
-        x = x + Q
+        x = x + input
         x = self.layer_norm_1(x)
         
         memory = x

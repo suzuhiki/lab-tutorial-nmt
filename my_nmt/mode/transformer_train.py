@@ -25,6 +25,8 @@ def transformer_train(model, train_dataloader, dev_dataloader, optimizer, criter
 
             pred = model(src_tensor, dst_tensor)
 
+            # print("pred: {}".format(torch.argmax(pred, dim=2)[0]))
+            # print("dst: {}".format(dst_tensor[0]))
             
             loss = torch.tensor(0, dtype=torch.float).to(device)
             for s_pred, s_dst in zip(pred, dst):
@@ -46,10 +48,20 @@ def transformer_train(model, train_dataloader, dev_dataloader, optimizer, criter
                 # pred (batch_size, word_len)
                 pred = model(src_tensor, dst_tensor)
                 
+                # print(pred)
+                
                 pred_text = []
                 id2w = np.vectorize(lambda id: tgt_id2w[id])
                 for sentence in pred:
-                    pred_text.append(id2w(sentence)) 
+                    pred_text.append(id2w(sentence))
+                    
+                pred_text_clean = []
+                for sentence in pred_text:
+                    temp_list = []
+                    for word in sentence:
+                        if word != "<bos>" and word != "<pad>" and word != "<eos>":
+                            temp_list.append(word)
+                    pred_text_clean.append(temp_list)
                 
                 dst_text = id2w(dst.to("cpu").detach().numpy().copy())
                 dst_text_clean = []
@@ -57,13 +69,13 @@ def transformer_train(model, train_dataloader, dev_dataloader, optimizer, criter
                 for sentence in dst_text:
                     tmp_list = []
                     for word in sentence:
-                        if word != "<bos>" and word != "<pad>":
+                        if word != "<bos>" and word != "<pad>" and word != "<eos>":
                             tmp_list.append(word)
                     dst_text_clean.append(tmp_list)
                 
                 
                 bleu = 0
-                for pred_c, dst_c in zip(pred_text, dst_text_clean):
+                for pred_c, dst_c in zip(pred_text_clean, dst_text_clean):
                     bleu += sentence_bleu([dst_c], pred_c,  smoothing_function=SmoothingFunction().method1)
                     print("dst:" + "".join(dst_c))
                     print("pred" + "".join(pred_c))
