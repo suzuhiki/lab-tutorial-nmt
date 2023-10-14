@@ -55,6 +55,7 @@ def main():
     parser.add_argument("--ff_hidden_size", type=int, default=2048)
     parser.add_argument("--feature_dim", type=int, default=512)
     parser.add_argument("--block_num", type=int, default=6)
+    parser.add_argument("--max_len", type=int, default=500)
     
     args = parser.parse_args()
     
@@ -113,7 +114,7 @@ def main():
         print("語彙サイズ：src {}, tgt {}".format(src_vocab_size, tgt_vocab_size))
         
         if args.model == "Transformer":
-            model = Transformer(src_vocab_size, tgt_vocab_size, args.dropout, args.head_num, args.feature_dim, special_token, device, args.block_num, args.ff_hidden_size).to(device)
+            model = Transformer(src_vocab_size, tgt_vocab_size, args.dropout, args.head_num, args.feature_dim, special_token, args.max_len, device, args.block_num, args.ff_hidden_size).to(device)
             print(model)
             
             optimizer = torch.optim.Adam(model.parameters(), args.learning_rate, weight_decay=args.weight_decay)

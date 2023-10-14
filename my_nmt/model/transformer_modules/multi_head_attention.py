@@ -15,13 +15,13 @@ class MultiHeadAttention(nn.Module):
             sys.exit()
         self.hidden_dim = int(feature_dim/head_num)
         
-        self.linear_K = nn.Linear(feature_dim, feature_dim, bias=False)
-        self.linear_V = nn.Linear(feature_dim, feature_dim, bias=False)
-        self.linear_Q = nn.Linear(feature_dim, feature_dim, bias=False)
+        self.linear_K = nn.Linear(feature_dim, feature_dim)
+        self.linear_V = nn.Linear(feature_dim, feature_dim)
+        self.linear_Q = nn.Linear(feature_dim, feature_dim)
         
         self.softmax = nn.Softmax(dim = -1)
         self.dropout = nn.Dropout(p=dropout)
-        self.linear_out = nn.Linear(feature_dim, feature_dim, bias= False)
+        self.linear_out = nn.Linear(feature_dim, feature_dim)
     
     # query, key, value (batch_size, word_len, feature)
     def forward(self, query, key, value, mask):
