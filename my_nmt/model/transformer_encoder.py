@@ -16,18 +16,18 @@ class TransformerEncoder(nn.Module):
         self.pos_enc = PositionalEncoding(feature_dim, dropout, device, max_len)
         self.dropout = nn.Dropout(dropout)
         self.encoder_blocks = nn.ModuleList([EncoderBlock(feature_dim, head_num, dropout, ff_hidden_dim, device) for _ in range(block_num)]) 
+        self.scale = torch.sqrt(torch.FloatTensor([feature_dim])).to(device)
     
     # x (batch_size, word_num)
     def forward(self, x, mask):
 
         # print(x[0])
-        x = self.embed(x)
-        # print(torch.argmax(x, dim=2)[0])
-        x = x*(self.feature_dim**0.5)
-        # print(torch.argmax(x, dim=2)[0])
+        x = self.embed(x)*self.scale
+        # print("scaled: {}".format(x[0][0]))
         x = self.pos_enc(x)
-        # print(torch.argmax(x, dim=2)[0])
+        # print("after_pos_enc: {}".format(x[0][0]))
         x = self.dropout(x)
+        # print("after_dropout: {}".format(x[0][0]))
 
         for encoder_block in self.encoder_blocks:
             x = encoder_block(x, mask)

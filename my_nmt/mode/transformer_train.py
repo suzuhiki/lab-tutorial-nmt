@@ -12,32 +12,33 @@ from ..util.first_debugger import FirstDebugger
 
 def transformer_train(model, train_dataloader, dev_dataloader, optimizer, criterion, epoch_num, device,
                batch_size, tgt_id2w, model_save_span: int, model_save_path, writer: SummaryWriter):
+
     for epoch in range(1, epoch_num+1):
         model.train()
         train_loss = torch.tensor(0, dtype=torch.float).to(device)
         bleu_list = []
         
+        # 学習
         for src, dst in tqdm(train_dataloader):
             optimizer.zero_grad()
             
             src_tensor = src.clone().detach().to(device)
             dst_tensor = dst.clone().detach().to(device)
 
-            pred = model(src_tensor, dst_tensor)
-
-            # print("pred: {}".format(torch.argmax(pred, dim=2)[0]))
-            # print("dst: {}".format(dst_tensor[0]))
+            pred = model(src_tensor, dst_tensor[:, :-1])
             
-            loss = torch.tensor(0, dtype=torch.float).to(device)
-            for s_pred, s_dst in zip(pred, dst):
-                dst_edit = torch.cat((s_dst[1:], torch.zeros(1, dtype=torch.int32))).to(device)
-                loss += criterion(s_pred, dst_edit)
+            # 平坦なベクトルに変換
+            pred_edit = pred.contiguous().view(-1, pred.shape[-1]).to(device)
+            dst_edit = dst[:, 1:].contiguous().view(-1).to(device)
+            
+            loss = criterion(pred_edit, dst_edit)
 
             train_loss += loss
             loss.backward()
             optimizer.step()
                 
-
+        train_loss = train_loss / len(train_dataloader)
+        
         # バリデーション
         model.eval()
         loop_count = 0
@@ -82,7 +83,7 @@ def transformer_train(model, train_dataloader, dev_dataloader, optimizer, criter
                     for pred_c, dst_c in zip(pred_text_clean, dst_text_clean):
                         bleu += sentence_bleu([dst_c], pred_c,  smoothing_function=SmoothingFunction().method1)
                         print("dst:" + "".join(dst_c))
-                        print("pred" + "".join(pred_c))
+                        print("pred:" + "".join(pred_c))
                     bleu = bleu / batch_size
                     bleu_list.append(bleu)
                     print("bleu: {}".format(bleu))
@@ -91,13 +92,15 @@ def transformer_train(model, train_dataloader, dev_dataloader, optimizer, criter
                 optimizer.zero_grad()
                 src_tensor = src.clone().detach().to(device)
                 dst_tensor = dst.clone().detach().to(device)
-                pred = model(src_tensor, dst_tensor)
+                pred = model(src_tensor, dst_tensor[:, :-1])
+                
+                pred_edit = pred.contiguous().view(-1, pred.shape[-1]).to(device)
+                dst_edit = dst[:, 1:].contiguous().view(-1).to(device)
         
-                loss = torch.tensor(0, dtype=torch.float).to(device)
-                for s_pred, s_dst in zip(pred, dst):
-                    dst_edit = torch.cat((s_dst[1:], torch.zeros(1, dtype=torch.int32))).to(device)
-                    loss += criterion(s_pred, dst_edit)
+                loss = criterion(pred_edit, dst_edit)
                 valid_loss += loss
+        
+        valid_loss = valid_loss / len(dev_dataloader)
         
         if epoch % model_save_span == 0:
             torch.save(model.state_dict(), f"{model_save_path}/{epoch}_{mean(bleu_list)}.pth")

@@ -15,9 +15,11 @@ from .other.my_dataset import MyDataset
 from .model.lstm import LSTM
 from .model.alstm import ALSTM
 from .model.transformer import Transformer
+from .model.SAN import SAN_NMT, Encoder, Decoder
 from .mode.lstm_train import lstm_train
 from .mode.lstm_test import lstm_test
 from .mode.transformer_train import transformer_train
+from .mode.SAN_train import SAN_train
 
 
 def main():
@@ -71,7 +73,7 @@ def main():
     batch_size = args.batch_size
     padding_id = special_token["<pad>"]
     
-    model_names = ["LSTM", "ALSTM", "Transformer"]
+    model_names = ["LSTM", "ALSTM", "Transformer", "SAN"]
     mode_names = ["train", "test"]
     
     # コマンドライン引数確認
@@ -124,7 +126,20 @@ def main():
             
             transformer_train(model, train_dataloader, dev_dataloader, optimizer, criterion, args.epoch_num, device, batch_size,
                               tgt_id2w, model_save_span=3, model_save_path=save_dir, writer=writer)
+        
+        elif args.model == "SAN":
+            encoder = Encoder(src_vocab_size, args.feature_dim, args.block_num, args.head_num, args.ff_hidden_size, args.dropout, args.max_len, device).to(device)
+            decoder = Decoder(tgt_vocab_size, args.feature_dim, args.block_num, args.head_num, args.ff_hidden_size, args.dropout, args.max_len, device).to(device)
+            model = SAN_NMT(encoder, decoder, special_token["<pad>"], special_token["<pad>"], device).to(device)
+            optimizer = torch.optim.Adam(model.parameters(), args.learning_rate)
+            criterion = nn.CrossEntropyLoss(ignore_index=special_token["<pad>"])
             
+            print(model)
+            
+            tgt_id2w = train_dataset.get_tgt_id2w()
+            
+            SAN_train(model, args.epoch_num, train_dataloader, dev_dataloader, optimizer, criterion, writer, device, 3, save_dir, special_token, args.max_len, tgt_id2w)
+        
         else:
             if args.model == "LSTM":
                 model = LSTM(args.hidden_size, src_vocab_size, tgt_vocab_size, padding_id, args.embed_size, device, args.dropout).to(device)

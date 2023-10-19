@@ -7,11 +7,6 @@ class PositionalEncoding(nn.Module):
     def __init__(self, embed_dim: int, dropout: float, device, max_seq_len=5000):
         super(PositionalEncoding, self).__init__()
         
-        self.dropout = nn.Dropout(p=dropout)
-        
-        position = torch.arange(max_seq_len).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, embed_dim, 2) * (-math.log(10000.0) / embed_dim))
-        
         self.pos_embedding = nn.Embedding(max_seq_len, embed_dim)
         self.device = device
 
@@ -21,4 +16,4 @@ class PositionalEncoding(nn.Module):
         pos = torch.arange(0, x.size(1)).unsqueeze(0).repeat(x.size(0), 1).to(self.device)
         x = x + self.pos_embedding(pos)
 
-        return self.dropout(x)
+        return x

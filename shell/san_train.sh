@@ -8,10 +8,10 @@ python3 -m my_nmt \
 --src_dev_path /home/morioka/workspace/git_projects/lab-tutorial-nmt/resource/tokenized/dev.en \
 --tgt_train_path /home/morioka/workspace/git_projects/lab-tutorial-nmt/resource/tokenized/train-1.short.ja \
 --tgt_dev_path /home/morioka/workspace/git_projects/lab-tutorial-nmt/resource/tokenized/dev.ja \
---learning_rate 0.0005 \
+--learning_rate 0.0001 \
 --epoch_num 28 \
 --batch_size 128 \
---dropout 0.2 \
---weight_decay 0.0001 \
---model Transformer \
+--dropout 0.1 \
+--weight_decay 0.001 \
+--model SAN \
 

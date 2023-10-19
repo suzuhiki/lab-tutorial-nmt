@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import sys
 
 from .feed_forward import FeedForward
 from .multi_head_attention import MultiHeadAttention
@@ -12,25 +13,19 @@ class EncoderBlock(nn.Module):
         self.layer_norm_1 = nn.LayerNorm(feature_dim)
         self.layer_norm_2 = nn.LayerNorm(feature_dim)
         self.FF = FeedForward(dropout, feature_dim, ff_hidden_dim=ff_hidden_dim)
-        self.dropout_1 = nn.Dropout(dropout)
-        self.dropout_2 = nn.Dropout(dropout)
+        self.dropout = nn.Dropout(dropout)
         
     def forward(self, input, mask):
-        Q = K = V = input
-        # print("encoder_in: {}".format(torch.argmax(Q, dim=2)[0]))
+        Q = K = V = input 
+        
         x = self.MHA(Q, K ,V, mask)
-        # print("after_encoder_MHA: {}".format(torch.argmax(x, dim=2)[0]))
-        x = self.dropout_1(x)
         
         # 残差接続
-        x = x + input
-        x = self.layer_norm_1(x)
+        x = self.layer_norm_1(self.dropout(x) + input)
         
         memory = x
         
         x = self.FF(x)
-        x = self.dropout_2(x)
-        x = x + memory
-        x = self.layer_norm_2(x)
+        x = self.layer_norm_2(memory + self.dropout(x))
         
         return x

@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import sys
 from .multi_head_attention import MultiHeadAttention
 from .feed_forward import FeedForward
 
@@ -12,28 +13,26 @@ class DecoderBlock(nn.Module):
         self.layer_norm_2 = nn.LayerNorm([feature_dim])
         self.layer_norm_3 = nn.LayerNorm([feature_dim])
         self.FF = FeedForward(dropout, feature_dim, ff_hidden_dim)
-        self.dropout_1 = nn.Dropout(dropout)
-        self.dropout_2 = nn.Dropout(dropout)
-        self.dropout_3 = nn.Dropout(dropout)
+        self.dropout = nn.Dropout(dropout)
         
     def forward(self, decoder_input, encoder_state, tgt_mask, s_t_mask):
         Q = K = V = decoder_input
-        # print("decoder_in: {}".format(torch.argmax(Q, dim=2)[0]))
+        
         x = self.s_MHA(Q, K, V, tgt_mask)
-        # print("after_decoder_MHA: {}".format(torch.argmax(x, dim=2)[0]))
-        x = self.dropout_1(x)
-        x = decoder_input + Q
+        
+        x = self.dropout(x)
+        x = x + decoder_input
         x = self.layer_norm_1(x)
         Q = x
         K = V = encoder_state
         
         x = self.ed_MHA(Q, K, V, s_t_mask)
-        x = self.dropout_2(x)
+        x = self.dropout(x)
         x = x + Q
         x = self.layer_norm_2(x)
         memory = x
         x = self.FF(x)
-        x = self.dropout_3(x)
+        x = self.dropout(x)
         x = x + memory
         x = self.layer_norm_3(x)
         return x

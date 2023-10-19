@@ -13,7 +13,7 @@ class MultiHeadAttention(nn.Module):
         if feature_dim % head_num != 0:
             print("[error] MultiHeadAttentionのhead数は埋め込み次元を割り切れる数にしてください")
             sys.exit()
-        self.hidden_dim = int(feature_dim/head_num)
+        self.head_dim = int(feature_dim/head_num)
         
         self.linear_K = nn.Linear(feature_dim, feature_dim)
         self.linear_V = nn.Linear(feature_dim, feature_dim)
@@ -22,31 +22,32 @@ class MultiHeadAttention(nn.Module):
         self.softmax = nn.Softmax(dim = -1)
         self.dropout = nn.Dropout(p=dropout)
         self.linear_out = nn.Linear(feature_dim, feature_dim)
-        
-        self.scale = torch.sqrt(torch.FloatTensor([self.hidden_dim])).to(device)
+        self.scale = torch.sqrt(torch.FloatTensor([self.head_dim])).to(device)
     
     # query, key, value (batch_size, word_len, feature)
     def forward(self, query, key, value, mask):
-        batch_size = query.size(0)
+
         
         Q = self.linear_Q(query)
         K = self.linear_K(key)
         V = self.linear_V(value)
 
-        # ヘッド数に分割
-        Q = Q.view(batch_size, -1, self.head_num, self.hidden_dim).permute(0, 2, 1, 3)
-        K = K.view(batch_size, -1, self.head_num, self.hidden_dim).permute(0, 2, 1, 3)
-        V = V.view(batch_size, -1, self.head_num, self.hidden_dim).permute(0, 2, 1, 3)
-        # 自己注意の計算：attention(Q, K, V) = Softmax(QK/sqrt(d))V
-        a_hat = torch.matmul(Q, K.permute(0, 1, 3, 2)) / self.scale
-        if mask is not None:
-            a_hat = a_hat.masked_fill(mask == 0, -1e10)
-        attention = torch.softmax(a_hat, dim = -1)
-        h = torch.matmul(self.dropout(attention), V)
-        # マルチヘッドを統合：MultiHead(Q, K, V) = Concat(h1, h2, ...)Wo
-        h = h.permute(0, 2, 1, 3).contiguous()
-        h = h.view(batch_size, -1, self.feature_dim)
-        return self.linear_out(h)
+        # split head (batch_size, head_num, word_len, hidden_dim)
+        Q = torch.tensor_split(Q, self.head_num, dim=2)
+        Q = torch.stack(Q, dim=1)
+
+        K = torch.tensor_split(K, self.head_num, dim=2)
+        K = torch.stack(K, dim=1)
+
+        V = torch.tensor_split(V, self.head_num, dim=2)
+        V = torch.stack(V, dim=1)
+
+        # calc attention (batch_size, head_num, word_len(Q), hidden_dim)
+        a = self.attention(Q, K, V, mask)
+        
+        result = self.linear_out(a)
+        
+        return result
     
     # Q, K, V (batch_size, head_num, word_len, hidden_dim), mask (batch_size, word_len)
     def attention(self, Q, K, V, mask = None):
@@ -55,11 +56,11 @@ class MultiHeadAttention(nn.Module):
         K_t = torch.permute(K, (0, 1, 3, 2))
         
         # (batch_size, head_num, word_num(Q), word_num(K))
-        QK = torch.matmul(Q, K_t) / (self.hidden_dim ** 0.5)
+        QK = torch.matmul(Q, K_t) / self.scale
         
         if mask is not None:
             QK = QK.masked_fill(mask == 1, -float("inf"))
-        
+
         # word_num(Q)の次元でsoftmax
         softmax_QK = self.softmax(QK)
         
