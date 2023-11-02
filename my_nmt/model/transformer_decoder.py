@@ -5,7 +5,7 @@ from .transformer_modules.positinal_encoding import PositionalEncoding
 from .transformer_modules.decoder_block import DecoderBlock
 
 class TransformerDecoder(nn.Module):
-    def __init__(self, dec_vocab_dim, feature_dim, dropout, head_num, special_token, max_len, device, ff_hidden_dim = 2048, block_num = 6) -> None:
+    def __init__(self, dec_vocab_dim, feature_dim, dropout, head_num, special_token, max_len, device, ff_hidden_dim = 2048, block_num = 6, init=False) -> None:
         super(TransformerDecoder, self).__init__()
         
         self.device = device
@@ -19,6 +19,11 @@ class TransformerDecoder(nn.Module):
         self.linear = nn.Linear(feature_dim, dec_vocab_dim)
         self.softmax = nn.Softmax(dim=2)
         self.scale = torch.sqrt(torch.FloatTensor([feature_dim])).to(device)
+
+        nn.init.constant_(self.embed.weight[self.special_token["<pad>"]], 0)
+        if init:
+            nn.init.normal_(self.embed.weight, 0, std=feature_dim ** -0.5)
+            nn.init.xavier_normal_(self.linear.weight)
         
     def forward(self, enc_state, decoder_input, src_mask, max_len, inference_mode = False):
         

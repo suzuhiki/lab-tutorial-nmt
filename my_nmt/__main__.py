@@ -11,6 +11,8 @@ from torch.nn.utils.rnn import pad_sequence
 from torch.utils.tensorboard import SummaryWriter
 import torch.nn as nn
 
+from torch.cuda.amp import GradScaler
+
 from .other.my_dataset import MyDataset
 from .model.lstm import LSTM
 from .model.alstm import ALSTM
@@ -58,6 +60,12 @@ def main():
     parser.add_argument("--feature_dim", type=int, default=512)
     parser.add_argument("--block_num", type=int, default=6)
     parser.add_argument("--max_len", type=int, default=500)
+    parser.add_argument("--clip_norm", type=float, default=1.0)
+    parser.add_argument("--warmig_up_step", type=int, default=4000)
+
+    parser.add_argument("--smooth_weight", type=float, default=0.1)
+    parser.add_argument("--init_weight", action="store_true")
+    parser.add_argument("--use_amp", action="store_true")
     
     args = parser.parse_args()
     
@@ -65,7 +73,7 @@ def main():
     random.seed(args.seed)
     torch.manual_seed(args.seed)
     
-    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print("device: {}".format(device))
     
@@ -73,7 +81,7 @@ def main():
     batch_size = args.batch_size
     padding_id = special_token["<pad>"]
     
-    model_names = ["LSTM", "ALSTM", "Transformer", "SAN"]
+    model_names = ["LSTM", "ALSTM", "Transformer", "SAN", "Transformer_igawa"]
     mode_names = ["train", "test"]
     
     # コマンドライン引数確認
@@ -116,17 +124,19 @@ def main():
         print("語彙サイズ：src {}, tgt {}".format(src_vocab_size, tgt_vocab_size))
         
         if args.model == "Transformer":
-            model = Transformer(src_vocab_size, tgt_vocab_size, args.dropout, args.head_num, args.feature_dim, special_token, args.max_len, device, args.block_num, args.ff_hidden_size).to(device)
+            model = Transformer(src_vocab_size, tgt_vocab_size, args.dropout, args.head_num, args.feature_dim,
+                                special_token, args.max_len, device, args.block_num, args.ff_hidden_size).to(device)
             print(model)
             
-            optimizer = torch.optim.Adam(model.parameters(), args.learning_rate, weight_decay=args.weight_decay)
-            criterion = torch.nn.CrossEntropyLoss(ignore_index=padding_id)
+            optimizer = torch.optim.Adam(model.parameters(), args.learning_rate, betas=(0.9, 0.98), weight_decay=args.weight_decay)
+            criterion = torch.nn.CrossEntropyLoss(ignore_index=padding_id,label_smoothing=args.smooth_weight)
             
             tgt_id2w = train_dataset.get_tgt_id2w()
             
             transformer_train(model, train_dataloader, dev_dataloader, optimizer, criterion, args.epoch_num, device, batch_size,
-                              tgt_id2w, model_save_span=3, model_save_path=save_dir, writer=writer)
-        
+                              tgt_id2w, model_save_span=3, model_save_path=save_dir, writer=writer, max_norm=args.clip_norm,
+                              hidden_dim=args.feature_dim, warmig_up_step=args.warmig_up_step)
+
         elif args.model == "SAN":
             encoder = Encoder(src_vocab_size, args.feature_dim, args.block_num, args.head_num, args.ff_hidden_size, args.dropout, args.max_len, device).to(device)
             decoder = Decoder(tgt_vocab_size, args.feature_dim, args.block_num, args.head_num, args.ff_hidden_size, args.dropout, args.max_len, device).to(device)

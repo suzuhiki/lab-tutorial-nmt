@@ -68,3 +68,16 @@ class MyDataset(Dataset):
         tmp_list.insert(0, self.special_token["<bos>"])
         tmp_list.append(self.special_token["<eos>"])
         return tmp_list
+    
+    def get_all_tgt(self):
+        result = []
+
+        with open(self.tgt_path, "r") as f:
+            tmp_doc = f.read().splitlines()
+            for line in tmp_doc:
+                tmp_list = []
+                for word in line.split(" "):
+                    l_word = word.lower()
+                    tmp_list.append(l_word)
+                result.append(tmp_list)
+        return result

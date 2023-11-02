@@ -7,36 +7,56 @@ import numpy as np
 import sys
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
+from torch.cuda.amp import autocast, GradScaler
 
 from ..util.first_debugger import FirstDebugger
 
 def transformer_train(model, train_dataloader, dev_dataloader, optimizer, criterion, epoch_num, device,
-               batch_size, tgt_id2w, model_save_span: int, model_save_path, writer: SummaryWriter):
+               batch_size, tgt_id2w, model_save_span: int, model_save_path, writer: SummaryWriter, max_norm, hidden_dim, warmig_up_step):
+    step_num = 1
+    scaler = GradScaler()
 
     for epoch in range(1, epoch_num+1):
         model.train()
         train_loss = torch.tensor(0, dtype=torch.float).to(device)
         bleu_list = []
         
+        pbar = tqdm(train_dataloader, ascii=True)
+        
         # 学習
-        for src, dst in tqdm(train_dataloader):
+        for i, (src, dst) in enumerate(pbar):
             optimizer.zero_grad()
             
             src_tensor = src.clone().detach().to(device)
             dst_tensor = dst.clone().detach().to(device)
-
-            pred = model(src_tensor, dst_tensor[:, :-1])
             
-            # 平坦なベクトルに変換
-            pred_edit = pred.contiguous().view(-1, pred.shape[-1]).to(device)
-            dst_edit = dst[:, 1:].contiguous().view(-1).to(device)
+            with autocast():
+                pred = model(src_tensor, dst_tensor[:, :-1])
             
-            loss = criterion(pred_edit, dst_edit)
+                # 平坦なベクトルに変換
+                pred_edit = pred.contiguous().view(-1, pred.shape[-1]).to(device)
+                dst_edit = dst[:, 1:].contiguous().view(-1).to(device)
+            
+                loss = criterion(pred_edit, dst_edit)
 
             train_loss += loss
-            loss.backward()
-            optimizer.step()
-                
+            
+            scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
+
+            nn.utils.clip_grad_norm_(model.parameters(), max_norm=max_norm)
+
+            lrate = hidden_dim**(-0.5) * min(step_num**(-0.5), step_num * warmig_up_step**(-1.5))
+            
+            for p in optimizer.param_groups:
+                p['lr'] = lrate
+            
+            step_num += 1
+            
+            scaler.step(optimizer)
+            scaler.update()
+            
+            pbar.set_description("[epoch:%d] loss:%f" % (epoch, train_loss/(i+1)))
         train_loss = train_loss / len(train_dataloader)
         
         # バリデーション
@@ -47,7 +67,7 @@ def transformer_train(model, train_dataloader, dev_dataloader, optimizer, criter
             with torch.no_grad():
                 
                 # 出力文確認  
-                if loop_count == 0:
+                if True:
                     loop_count+=1
                     src_tensor = src.clone().detach().to(device)
                     dst_tensor = dst.clone().detach().to(device)
@@ -82,9 +102,10 @@ def transformer_train(model, train_dataloader, dev_dataloader, optimizer, criter
                     bleu = 0
                     for pred_c, dst_c in zip(pred_text_clean, dst_text_clean):
                         bleu += sentence_bleu([dst_c], pred_c,  smoothing_function=SmoothingFunction().method1)
-                        print("dst:" + "".join(dst_c))
-                        print("pred:" + "".join(pred_c))
+                        # print("dst:" + "".join(dst_c))
+                        # print("pred:" + "".join(pred_c))
                     bleu = bleu / batch_size
+                    bleu = bleu * 100
                     bleu_list.append(bleu)
                     print("bleu: {}".format(bleu))
                 
