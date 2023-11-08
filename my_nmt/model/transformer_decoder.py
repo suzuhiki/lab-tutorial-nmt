@@ -13,7 +13,7 @@ class TransformerDecoder(nn.Module):
         self.dec_vocab_dim = dec_vocab_dim
         self.feature_dim = feature_dim
         self.embed = nn.Embedding(dec_vocab_dim, feature_dim, special_token["<pad>"])
-        self.pos_enc = PositionalEncoding(feature_dim, dropout, device, max_len)
+        self.pos_enc = PositionalEncoding(feature_dim, dropout, device)
         self.decoder_blocks = nn.ModuleList([DecoderBlock(feature_dim, head_num, dropout, ff_hidden_dim, device) for _ in range(block_num)])
         self.dropout = nn.Dropout(dropout)
         self.linear = nn.Linear(feature_dim, dec_vocab_dim)
@@ -25,40 +25,9 @@ class TransformerDecoder(nn.Module):
             nn.init.normal_(self.embed.weight, 0, std=feature_dim ** -0.5)
             nn.init.xavier_normal_(self.linear.weight)
         
-    def forward(self, enc_state, decoder_input, src_mask, max_len, inference_mode = False):
-        
-        if self.training == True:
-            tgt_mask = self.make_target_mask(decoder_input)
-            return self.decoder_process(decoder_input, enc_state, tgt_mask, src_mask)
-        
-        # 推論時 一文ずつ
-        else:
-            
-            if inference_mode == True:
-                batch_size = enc_state.size(0)
-                pred_seqs = []
-
-                for i in range(batch_size):
-                    pred_seq = [self.special_token["<bos>"]]
-
-                    for _ in range(max_len):
-                        tgt_in = torch.LongTensor(pred_seq).unsqueeze(0).to(self.device)
-                        tgt_mask = self.make_target_mask(tgt_in)
-                        
-                        with torch.no_grad():
-                            output = self.decoder_process(tgt_in, enc_state[i].unsqueeze(0), tgt_mask, src_mask[i])
-
-                        pred_token_id = output.argmax(dim = 2)[:,-1].item()
-                        pred_seq.append(pred_token_id)
-
-                        if pred_token_id == self.special_token["<eos>"]:
-                            break
-                    pred_seqs.append(pred_seq)
-                return pred_seqs
-
-            else:
-                tgt_mask = self.make_target_mask(decoder_input)
-                return self.decoder_process(decoder_input, enc_state, tgt_mask, src_mask)
+    def forward(self, enc_state, decoder_input, src_mask):
+        tgt_mask = self.make_target_mask(decoder_input)
+        return self.decoder_process(decoder_input, enc_state, tgt_mask, src_mask)
 
 
     def make_target_mask(self, decoder_input):

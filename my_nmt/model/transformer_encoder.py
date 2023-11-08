@@ -13,7 +13,7 @@ class TransformerEncoder(nn.Module):
         self.special_token = special_token
         self.feature_dim = feature_dim
         self.embed = nn.Embedding(enc_vocab_dim, feature_dim, special_token["<pad>"])
-        self.pos_enc = PositionalEncoding(feature_dim, dropout, device, max_len)
+        self.pos_enc = PositionalEncoding(feature_dim, dropout, device)
         self.dropout = nn.Dropout(dropout)
         self.encoder_blocks = nn.ModuleList([EncoderBlock(feature_dim, head_num, dropout, ff_hidden_dim, device) for _ in range(block_num)]) 
         self.scale = torch.sqrt(torch.FloatTensor([feature_dim])).to(device)

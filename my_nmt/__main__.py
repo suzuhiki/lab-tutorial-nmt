@@ -20,7 +20,7 @@ from .model.transformer import Transformer
 from .model.SAN import SAN_NMT, Encoder, Decoder
 from .mode.lstm_train import lstm_train
 from .mode.lstm_test import lstm_test
-from .mode.transformer_train import transformer_train
+from .mode.transformer_mode import transformer_train
 from .mode.SAN_train import SAN_train
 
 
@@ -48,7 +48,7 @@ def main():
     parser.add_argument("--seed", type=int, default=46)
     parser.add_argument("--embed_size", type=int, default=256)
     
-    parser.add_argument("--save_dir", type=str, default="./output")
+    parser.add_argument("--save_dir", type=str, default="./.output")
     parser.add_argument("--mode", type=str, default="train")
     parser.add_argument("--model_file_path", type=str, default=None)
     
@@ -59,7 +59,7 @@ def main():
     parser.add_argument("--ff_hidden_size", type=int, default=2048)
     parser.add_argument("--feature_dim", type=int, default=512)
     parser.add_argument("--block_num", type=int, default=6)
-    parser.add_argument("--max_len", type=int, default=500)
+    parser.add_argument("--max_len", type=int, default=150)
     parser.add_argument("--clip_norm", type=float, default=1.0)
     parser.add_argument("--warmig_up_step", type=int, default=4000)
 
@@ -135,7 +135,7 @@ def main():
             
             transformer_train(model, train_dataloader, dev_dataloader, optimizer, criterion, args.epoch_num, device, batch_size,
                               tgt_id2w, model_save_span=3, model_save_path=save_dir, writer=writer, max_norm=args.clip_norm,
-                              hidden_dim=args.feature_dim, warmig_up_step=args.warmig_up_step)
+                              hidden_dim=args.feature_dim, warmig_up_step=args.warmig_up_step, special_token=special_token, max_len=args.max_len, tgt_path=args.tgt_dev_path)
 
         elif args.model == "SAN":
             encoder = Encoder(src_vocab_size, args.feature_dim, args.block_num, args.head_num, args.ff_hidden_size, args.dropout, args.max_len, device).to(device)

@@ -13,13 +13,23 @@ class Transformer(nn.Module):
         self.decoder = TransformerDecoder(vocab_size_tgt, feature_dim, dropout, head_num, special_token, max_len, device, ff_hidden_size, block_num)
         self.special_token = special_token
 
-    def forward(self, src, tgt, inference_mode = False):        
+    def forward(self, src, tgt):        
         gen_len = src.size(1) + 50
         
-        # padの部分を1にする
-        src_mask = torch.where(src == self.special_token["<pad>"], 1, 0).unsqueeze(1).unsqueeze(2)
+        src_mask = self.make_src_mask(src)
         
         encoder_state = self.encoder(src, src_mask)
 
-        output = self.decoder(encoder_state, tgt, src_mask, gen_len, inference_mode)
+        output = self.decoder(encoder_state, tgt, src_mask)
         return output
+    
+    def get_encoder(self):
+        return self.encoder
+    
+    def get_decoder(self):
+        return self.decoder
+    
+    def make_src_mask(self, src):
+        # padの部分を1にする
+        src_mask = torch.where(src == self.special_token["<pad>"], 1, 0).unsqueeze(1).unsqueeze(2)
+        return src_mask

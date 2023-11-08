@@ -4,9 +4,11 @@ import math
 import sys
 
 class PositionalEncoding(nn.Module):
-    def __init__(self, embed_dim: int, dropout: float, device, max_seq_len=5000):
+    def __init__(self, embed_dim: int, dropout: float, device):
         super(PositionalEncoding, self).__init__()
         
+        max_seq_len = 5000
+
         self.pos_embedding = nn.Embedding(max_seq_len, embed_dim)
         self.device = device
 
