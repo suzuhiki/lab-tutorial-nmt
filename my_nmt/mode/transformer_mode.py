@@ -15,7 +15,7 @@ from ..model.transformer import Transformer
 def transformer_train(model, train_dataloader, dev_dataloader, optimizer, criterion, epoch_num, device,
                batch_size, tgt_id2w, model_save_span: int, model_save_path, writer: SummaryWriter, max_norm, hidden_dim, warmig_up_step, special_token, max_len, tgt_path):
     step_num = 1
-    scaler = GradScaler(enabled=False)
+    scaler = GradScaler()
 
     torch.autograd.set_detect_anomaly(True)
 
@@ -32,7 +32,7 @@ def transformer_train(model, train_dataloader, dev_dataloader, optimizer, criter
             src_tensor = src.clone().detach().to(device)
             dst_tensor = dst.clone().detach().to(device)
             
-            with autocast(enabled=False):
+            with autocast():
                 pred = model(src_tensor, dst_tensor[:, :-1])
             
                 # 平坦なベクトルに変換

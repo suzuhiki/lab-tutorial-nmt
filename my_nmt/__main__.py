@@ -117,8 +117,8 @@ def main():
         
         dev_dataset = MyDataset(args.src_dev_path, args.tgt_dev_path, special_token, *t_dicts)
         
-        train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_func)
-        dev_dataloader = DataLoader(dev_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_func)
+        train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_func, num_workers=2)
+        dev_dataloader = DataLoader(dev_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_func, num_workers=2)
         
         src_vocab_size, tgt_vocab_size = train_dataset.get_vocab_size()
         print("語彙サイズ：src {}, tgt {}".format(src_vocab_size, tgt_vocab_size))
@@ -128,7 +128,7 @@ def main():
                                 special_token, args.max_len, device, args.block_num, args.ff_hidden_size).to(device)
             print(model)
             
-            optimizer = torch.optim.Adam(model.parameters(), args.learning_rate, betas=(0.9, 0.98), weight_decay=args.weight_decay)
+            optimizer = torch.optim.Adam(model.parameters(), betas=(0.9, 0.98), eps=1e-9, weight_decay=args.weight_decay)
             criterion = torch.nn.CrossEntropyLoss(ignore_index=padding_id,label_smoothing=args.smooth_weight)
             
             tgt_id2w = train_dataset.get_tgt_id2w()
@@ -193,6 +193,7 @@ def main():
 
 # データローダーに使う関数
 def collate_func(batch):
+
     src_t = []
     tgt_t = []
     

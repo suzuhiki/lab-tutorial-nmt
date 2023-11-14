@@ -13,8 +13,10 @@ class WordDictionary:
         with open(src_path, "r") as f:
             tmp_doc = f.read().splitlines()
             for line in tmp_doc:
-                tmp_line = line.split(" ")
-                for word in tmp_line:
+                if line == "":
+                    continue
+                tokens = line.split(" ")
+                for word in tokens:
                     l_word = word.lower()
                     if l_word not in self.w2id_dict:
                         id = len(self.w2id_dict)

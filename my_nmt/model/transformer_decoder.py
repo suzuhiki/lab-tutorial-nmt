@@ -13,10 +13,10 @@ class TransformerDecoder(nn.Module):
         self.dec_vocab_dim = dec_vocab_dim
         self.feature_dim = feature_dim
         self.embed = nn.Embedding(dec_vocab_dim, feature_dim, special_token["<pad>"])
-        self.pos_enc = PositionalEncoding(feature_dim, dropout, device)
+        self.pos_enc = PositionalEncoding(feature_dim, dropout, device, max_len)
         self.decoder_blocks = nn.ModuleList([DecoderBlock(feature_dim, head_num, dropout, ff_hidden_dim, device) for _ in range(block_num)])
         self.dropout = nn.Dropout(dropout)
-        self.linear = nn.Linear(feature_dim, dec_vocab_dim)
+        self.linear = nn.Linear(feature_dim, dec_vocab_dim, bias=False)
         self.softmax = nn.Softmax(dim=2)
         self.scale = torch.sqrt(torch.FloatTensor([feature_dim])).to(device)
 
@@ -45,14 +45,18 @@ class TransformerDecoder(nn.Module):
 
         x = self.embed(input)
 
-        x = x*self.scale
+        x = torch.mul(x, self.scale)
 
         x = self.pos_enc(x)
 
         x = self.dropout(x)
 
+        block_in = x
         for decoder_block in self.decoder_blocks:
-            x = decoder_block(x, enc_state, tgt_mask, src_mask)
+            block_out = decoder_block(block_in, enc_state, tgt_mask, src_mask)
+            block_in = block_out
+        x = block_out
+
         x = self.linear(x)
         
         return x
