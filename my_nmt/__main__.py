@@ -66,6 +66,8 @@ def main():
     parser.add_argument("--smooth_weight", type=float, default=0.1)
     parser.add_argument("--init_weight", action="store_true")
     parser.add_argument("--use_amp", action="store_true")
+    parser.add_argument("--enable_logging", action="store_true")
+    parser.add_argument("--model_save_span", type=int, default=3)
     
     args = parser.parse_args()
     
@@ -104,8 +106,11 @@ def main():
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         
-        # ログファイル設定
-        writer = SummaryWriter(log_dir=save_dir)
+        if args.enable_logging:
+            # ログファイル設定
+            writer = SummaryWriter(log_dir=save_dir)
+        else:
+            writer = None
         
         # config出力
         with open("{}/config.json".format(save_dir), mode="w") as f:

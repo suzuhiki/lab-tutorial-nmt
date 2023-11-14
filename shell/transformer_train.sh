@@ -14,4 +14,5 @@ python3 -m my_nmt \
 --dropout 0.1 \
 --weight_decay 0.00001 \
 --model Transformer \
---init_weight
+--init_weight \
+--model_save_span 30
