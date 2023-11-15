@@ -15,4 +15,5 @@ python3 -m my_nmt \
 --weight_decay 0.00001 \
 --model Transformer \
 --init_weight \
---model_save_span 30
+--model_save_span 3 \
+--enable_logging

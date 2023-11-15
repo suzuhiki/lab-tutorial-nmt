@@ -10,8 +10,6 @@ class TransformerDecoder(nn.Module):
         
         self.device = device
         self.special_token = special_token
-        self.dec_vocab_dim = dec_vocab_dim
-        self.feature_dim = feature_dim
         self.embed = nn.Embedding(dec_vocab_dim, feature_dim, special_token["<pad>"])
         self.pos_enc = PositionalEncoding(feature_dim, dropout, device, max_len)
         self.decoder_blocks = nn.ModuleList([DecoderBlock(feature_dim, head_num, dropout, ff_hidden_dim, device) for _ in range(block_num)])
@@ -27,23 +25,8 @@ class TransformerDecoder(nn.Module):
         
     def forward(self, enc_state, decoder_input, src_mask):
         tgt_mask = self.make_target_mask(decoder_input)
-        return self.decoder_process(decoder_input, enc_state, tgt_mask, src_mask)
 
-
-    def make_target_mask(self, decoder_input):
-        pad_mask = torch.where(decoder_input == self.special_token["<pad>"], 1, 0).unsqueeze(1).unsqueeze(2)
-        # print("pad_mask: {}".format(pad_mask[0]))
-        tgt_mask = torch.ones((pad_mask.size(-1), pad_mask.size(-1))).triu(diagonal=1).to(self.device)
-        # print("tgt_mask: {}".format(tgt_mask[0]))
-        tgt_mask = pad_mask + tgt_mask
-        tgt_mask = torch.where(tgt_mask >= 1, 1, 0)
-        # print("mask: {}".format(tgt_mask[0]))
-        
-        return tgt_mask
-    
-    def decoder_process(self, input, enc_state, tgt_mask, src_mask):
-
-        x = self.embed(input)
+        x = self.embed(decoder_input)
 
         x = torch.mul(x, self.scale)
 
@@ -58,5 +41,16 @@ class TransformerDecoder(nn.Module):
         x = block_out
 
         x = self.linear(x)
-        
+
         return x
+
+
+    def make_target_mask(self, decoder_input):
+        pad_mask = torch.where(decoder_input == self.special_token["<pad>"], 1, 0).unsqueeze(1).unsqueeze(2)
+
+        tgt_mask = torch.ones((pad_mask.size(-1), pad_mask.size(-1))).triu(diagonal=1).to(self.device)
+
+        tgt_mask = pad_mask + tgt_mask
+        tgt_mask = torch.where(tgt_mask >= 1, 1, 0)
+        
+        return tgt_mask
